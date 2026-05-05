@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Golf Pro Manager</title>
+    <style>
+        :root { --primary: #1b5e20; --accent: #ffd700; --danger: #d32f2f; --light: #f4f4f4; --gold: #fff9c4; --silver: #f5f5f5; --bronze: #efebe9; --info: #0277bd; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #e0e0e0; color: #333; padding-bottom: 50px; }
+        
+        .header { background: white; padding: 10px 15px; border-bottom: 3px solid var(--accent); display: flex; align-items: center; gap: 15px; min-height: 60px; }
+        #club-logo-img { max-height: 50px; max-width: 80px; object-fit: contain; display: none; }
+        .header h1 { margin: 0; color: var(--primary); font-size: 1.2rem; flex-grow: 1; }
+
+        .nav { display: flex; background: var(--primary); position: sticky; top: 0; z-index: 1000; overflow-x: auto; }
+        .nav button { flex: 1; min-width: 80px; padding: 14px 5px; border: none; background: none; color: white; font-size: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; white-space: nowrap; }
+        .nav button.active { border-bottom: 4px solid var(--accent); background: rgba(255,255,255,0.1); }
+        
+        .container { padding: 15px; max-width: 900px; margin: auto; }
+        .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .hidden { display: none !important; }
+        
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        label { font-size: 13px; font-weight: bold; color: #555; margin-top: 10px; display: block; }
+
+        .btn { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
+        .btn-outline { background: white; color: var(--primary); border: 2px solid var(--primary); width: auto; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; }
+        .btn-edit { background: var(--info); color: white; border: none; width: auto; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; margin-right: 5px;}
+        .btn-del { background: var(--danger); color: white; border: none; width: auto; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; }
+        
+        .item-row { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; background: white; }
+        .selector-list { border: 1px solid #ddd; padding: 5px; border-radius: 8px; max-height: 200px; overflow-y: auto; margin-bottom: 10px; }
+        
+        .match-card { border: 1px solid #ddd; padding: 10px; margin: 10px 0; border-radius: 8px; border-left: 5px solid var(--accent); }
+        .winner-row { background: #e8f5e9; font-weight: bold; border-radius: 4px; padding: 2px 5px; }
+
+        .score-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin: 10px 0; }
+        .hole-input { text-align: center; }
+        .hole-input label { font-size: 9px; display: block; color: #777; }
+        .hole-input input { padding: 4px; text-align: center; margin: 0; font-size: 12px; }
+
+        .stats-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .stats-table th { text-align: left; background: #f8f8f8; padding: 8px; border-bottom: 2px solid #ddd; }
+        .stats-table td { padding: 8px; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <img id="club-logo-img" src="" alt="Logo">
+    <h1 id="header-club-name">Golf Pro Manager</h1>
+</div>
+
+<div class="nav">
+    <button onclick="showTab('tab-dash')" id="btn-dash" class="active">History</button>
+    <button onclick="showTab('tab-leaderboard')" id="btn-leaderboard">Leaderboard</button>
+    <button onclick="showTab('tab-comp')" id="btn-comp">Enter Score</button>
+    <button onclick="showTab('tab-stats')" id="btn-stats">Stats</button>
+    <button onclick="showTab('tab-pairs')" id="btn-pairs">Doubles/Pairs</button>
+    <button onclick="showTab('tab-singles')" id="btn-singles">Singles</button>
+    <button onclick="showTab('tab-setup')" id="btn-setup">Setup</button>
+</div>
+
+<div class="container">
+    <div id="tab-dash" class="tab-content">
+        <div class="card">
+            <h3>Historical Results</h3>
+            <select id="historyDropdown" onchange="renderHistoryBySelection()"></select>
+            <div id="history-results-list"></div>
+        </div>
+    </div>
+
+    <div id="tab-leaderboard" class="tab-content hidden">
+        <div class="card"><h3>Today's Leaderboard</h3><div id="leaderboard-display"></div></div>
+    </div>
+
+    <div id="tab-comp" class="tab-content hidden">
+        <div class="card">
+            <h3 id="comp-title">Enter Scorecard</h3>
+            <input type="hidden" id="editRoundId">
+            <label>Date</label><input type="date" id="rDate">
+            <label>Course</label><select id="rCourse"></select>
+            <label>Player</label><select id="rPlayer"></select>
+            <div class="score-grid" id="round-scores"></div>
+            <button class="btn" id="saveBtn" onclick="saveRound()">Save Result</button>
+            <button class="btn-del" id="cancelEditBtn" style="display:none;" onclick="cancelEdit()">Cancel</button>
+        </div>
+    </div>
+
+    <div id="tab-stats" class="tab-content hidden">
+        <div class="card">
+            <h3>Master Score Log</h3>
+            <select id="statsDateFilter" onchange="renderStats()"></select>
+            <table class="stats-table">
+                <thead><tr><th>Player</th><th>Date</th><th>Pts</th><th>Actions</th></tr></thead>
+                <tbody id="stats-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="tab-pairs" class="tab-content hidden">
+        <div class="card">
+            <h3>Doubles (Pairs) Knockout</h3>
+            <div id="pairs-setup">
+                <div id="pairs-selector" class="selector-list"></div>
+                <button class="btn" onclick="initTourney('pairs')">Generate Doubles Bracket</button>
+            </div>
+            <div id="pairs-bracket"></div>
+        </div>
+    </div>
+
+    <div id="tab-singles" class="tab-content hidden">
+        <div class="card">
+            <h3>Singles Knockout</h3>
+            <div id="singles-setup">
+                <div id="singles-selector" class="selector-list"></div>
+                <button class="btn" onclick="initTourney('singles')">Generate Singles Bracket</button>
+            </div>
+            <div id="singles-bracket"></div>
+        </div>
+    </div>
+
+    <div id="tab-setup" class="tab-content hidden">
+        <div class="card">
+            <h3>Club Branding</h3>
+            <label>Club Name</label>
+            <input type="text" id="setupClubName">
+            <label>Club Logo</label>
+            <input type="file" id="logoUpload" accept="image/*" onchange="handleLogoUpload(this)">
+            <button class="btn" onclick="saveClubProfile()">Update Branding</button>
+        </div>
+        <div class="card">
+            <h3 id="player-form-title">Player Registry</h3>
+            <input type="hidden" id="editPlayerId">
+            <input type="text" id="pName" placeholder="Player Name">
+            <input type="number" id="pHC" placeholder="Handicap">
+            <button class="btn" id="playerSaveBtn" onclick="savePlayer()">Add Player</button>
+            <button class="btn-del" id="cancelPlayerEditBtn" style="display:none; width:100%" onclick="cancelPlayerEdit()">Cancel Edit</button>
+            <div id="admin-players"></div>
+        </div>
+        <div class="card">
+            <h3>Course Registry</h3>
+            <input type="text" id="cName" placeholder="Course Name">
+            <label>Pars</label><div class="score-grid" id="setup-pars"></div>
+            <label>Stroke Index</label><div class="score-grid" id="setup-si"></div>
+            <button class="btn" onclick="saveCourse()">Add Course</button>
+            <div id="admin-courses"></div>
+        </div>
+        <button class="btn-del" style="width:100%" onclick="factoryReset()">Wipe All Data</button>
+    </div>
+</div>
+
+<script>
+    let players = [], courses = [], rounds = [], pairsT = null, singlesT = null, club = { name: "Golf Pro Manager", logo: "" };
+
+    function loadData() {
+        players = JSON.parse(localStorage.getItem('g_players')) || [];
+        courses = JSON.parse(localStorage.getItem('g_courses')) || [];
+        rounds = JSON.parse(localStorage.getItem('g_rounds')) || [];
+        pairsT = JSON.parse(localStorage.getItem('g_pairsT'));
+        singlesT = JSON.parse(localStorage.getItem('g_singlesT'));
+        club = JSON.parse(localStorage.getItem('g_club')) || { name: "Golf Pro Manager", logo: "" };
+    }
+
+    function saveData() {
+        localStorage.setItem('g_players', JSON.stringify(players));
+        localStorage.setItem('g_courses', JSON.stringify(courses));
+        localStorage.setItem('g_rounds', JSON.stringify(rounds));
+        localStorage.setItem('g_pairsT', JSON.stringify(pairsT));
+        localStorage.setItem('g_singlesT', JSON.stringify(singlesT));
+        localStorage.setItem('g_club', JSON.stringify(club));
+    }
+
+    function applyClubProfile() {
+        document.getElementById('header-club-name').innerText = club.name;
+        const img = document.getElementById('club-logo-img');
+        if(club.logo) { img.src = club.logo; img.style.display = 'block'; }
+        else { img.style.display = 'none'; }
+    }
+
+    function handleLogoUpload(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => { club.logo = e.target.result; };
+        reader.readAsDataURL(file);
+    }
+
+    function saveClubProfile() {
+        club.name = document.getElementById('setupClubName').value;
+        saveData();
+        applyClubProfile();
+        alert("Branding Updated!");
+    }
+
+    function showTab(id) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+        document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.remove('hidden');
+        document.getElementById('btn-' + id.split('-')[1]).classList.add('active');
+        loadData();
+        applyClubProfile();
+        if(id === 'tab-dash') populateDropdown('historyDropdown');
+        if(id === 'tab-stats') { populateDropdown('statsDateFilter', true); renderStats(); }
+        if(id === 'tab-leaderboard') renderLeaderboard();
+        if(id === 'tab-setup') { renderAdmin(); document.getElementById('setupClubName').value = club.name; }
+        if(id === 'tab-pairs' || id === 'tab-singles') renderMatchplay(id.split('-')[1]);
+        if(id === 'tab-comp') {
+            document.getElementById('rCourse').innerHTML = courses.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            document.getElementById('rPlayer').innerHTML = players.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        }
+    }
+
+    // --- PLAYER CRUD ---
+    function savePlayer() {
+        const name = document.getElementById('pName').value;
+        const hc = document.getElementById('pHC').value;
+        const eid = document.getElementById('editPlayerId').value;
+        if(!name || hc === "") return;
+        if(eid) { players[players.findIndex(p=>p.id==eid)] = {id:eid, name, handicap:hc}; }
+        else { players.push({id:Date.now(), name, handicap:hc}); }
+        saveData(); cancelPlayerEdit(); renderAdmin();
+    }
+    function editPlayer(id) {
+        const p = players.find(x=>x.id==id);
+        document.getElementById('editPlayerId').value = p.id;
+        document.getElementById('pName').value = p.name;
+        document.getElementById('pHC').value = p.handicap;
+        document.getElementById('playerSaveBtn').innerText = "Update Player";
+        document.getElementById('cancelPlayerEditBtn').style.display = "block";
+    }
+    function cancelPlayerEdit() {
+        document.getElementById('editPlayerId').value = "";
+        document.getElementById('pName').value = "";
+        document.getElementById('pHC').value = "";
+        document.getElementById('playerSaveBtn').innerText = "Add Player";
+        document.getElementById('cancelPlayerEditBtn').style.display = "none";
+    }
+    function deletePlayer(id) { if(confirm("Delete Player?")) { players = players.filter(p=>p.id!=id); saveData(); renderAdmin(); }}
+
+    // --- MATCHPLAY ---
+    function renderSelector(type) {
+        document.getElementById(type + '-selector').innerHTML = players.map(p => `
+            <div class="item-row">
+                <span>${p.name} (HC: ${p.handicap})</span>
+                <input type="checkbox" class="${type}-ck" value="${p.id}" style="width:20px">
+            </div>
+        `).join('');
+    }
+    function initTourney(type) {
+        const ids = Array.from(document.querySelectorAll('.' + type + '-ck:checked')).map(i => i.value);
+        if (ids.length < 2) return alert("Select players");
+        let units = [];
+        if (type === 'pairs') {
+            const shuf = ids.sort(() => 0.5 - Math.random());
+            for (let i = 0; i < shuf.length; i += 2) {
+                const p1 = players.find(p => p.id == shuf[i]);
+                const p2 = players.find(p => p.id == shuf[i + 1]);
+                units.push({ id: 'u'+i, name: p2 ? p1.name + " / " + p2.name : p1.name + " (Solo)" });
+            }
+        } else {
+            units = ids.map(id => ({ id: 'u'+id, name: players.find(p => p.id == id).name }));
+        }
+        const ms = [];
+        for (let i = 0; i < units.length; i += 2) { ms.push({ id: 'm'+i+Date.now(), uA: units[i], uB: units[i+1]||null, win: units[i+1]?null:'A' }); }
+        const obj = { rounds: [ms] };
+        if (type === 'pairs') pairsT = obj; else singlesT = obj;
+        saveData(); renderMatchplay(type);
+    }
+    function renderMatchplay(type) {
+        const t = (type === 'pairs') ? pairsT : singlesT;
+        const setup = document.getElementById(type + '-setup'), bracket = document.getElementById(type + '-bracket');
+        if (!t) { setup.style.display = 'block'; bracket.innerHTML = ''; renderSelector(type); }
+        else {
+            setup.style.display = 'none';
+            let html = `<button class="btn-del" onclick="resetT('${type}')">Reset Bracket</button>`;
+            t.rounds.forEach((rd, i) => {
+                html += `<h4>Round ${i+1}</h4>`;
+                rd.forEach(m => {
+                    html += `<div class="match-card">
+                        <div class="${m.win==='A'?'winner-row':''}">${m.uA.name}</div>
+                        <div style="text-align:center;font-size:10px">VS</div>
+                        <div class="${m.win==='B'?'winner-row':''}">${m.uB?m.uB.name:'BYE'}</div>
+                        <div style="display:flex;gap:5px;margin-top:5px">
+                            <button class="btn-outline" onclick="setWin('${type}',${i},'${m.id}','A')">A Win</button>
+                            ${m.uB?`<button class="btn-outline" onclick="setWin('${type}',${i},'${m.id}','B')">B Win</button>`:''}
+                        </div></div>`;
+                });
+                if (i === t.rounds.length-1 && rd.every(m=>m.win!==null) && rd.length > 1) html += `<button class="btn" onclick="advanceRound('${type}')">Next Round</button>`;
+            });
+            bracket.innerHTML = html;
+        }
+    }
+    function setWin(t,ri,mi,w) { const o=(t==='pairs')?pairsT:singlesT; o.rounds[ri].find(x=>x.id===mi).win=w; saveData(); renderMatchplay(t); }
+    function advanceRound(t) {
+        const o=(t==='pairs')?pairsT:singlesT; const last=o.rounds[o.rounds.length-1];
+        const winners=last.map(m=>m.win==='A'?m.uA:m.uB).filter(w=>w!==null);
+        const next=[]; for(let i=0;i<winners.length;i+=2) next.push({id:'m'+i+Date.now(),uA:winners[i],uB:winners[i+1]||null,win:winners[i+1]?null:'A'});
+        o.rounds.push(next); saveData(); renderMatchplay(t);
+    }
+    function resetT(t) { if(confirm("Reset?")) { if(t==='pairs') pairsT=null; else singlesT=null; saveData(); renderMatchplay(t); }}
+
+    // --- SCORING & ADMIN ---
+    function saveRound() {
+        const cId = document.getElementById('rCourse').value, pId = document.getElementById('rPlayer').value;
+        const crs = courses.find(c=>c.id==cId), plr = players.find(p=>p.id==pId);
+        const scs = Array.from(document.querySelectorAll('.round-scores-val')).map(i=>parseInt(i.value)||0);
+        let pts = 0;
+        scs.forEach((s, i) => {
+            if(s>0){
+                const par = parseInt(crs.pars[i]), si = parseInt(crs.si[i]), hc = parseInt(plr.handicap);
+                const allow = Math.floor(hc/18) + (hc%18 >= si ? 1 : 0);
+                pts += Math.max(0, par - (s - allow) + 2);
+            }
+        });
+        rounds.push({id:Date.now(), date:document.getElementById('rDate').value, playerName:plr.name, points:pts, scores:scs});
+        saveData(); showTab('tab-leaderboard');
+    }
+    function renderAdmin() {
+        document.getElementById('admin-players').innerHTML = players.map(p => `<div class="item-row"><span>${p.name} (HC: ${p.handicap})</span><div><button class="btn-edit" onclick="editPlayer('${p.id}')">Edit</button><button class="btn-del" onclick="deletePlayer('${p.id}')">Delete</button></div></div>`).join('');
+        document.getElementById('admin-courses').innerHTML = courses.map(c => `<div class="item-row">${c.name}</div>`).join('');
+    }
+    function saveCourse() {
+        const p = Array.from(document.querySelectorAll('.setup-pars-val')).map(i=>i.value);
+        const s = Array.from(document.querySelectorAll('.setup-si-val')).map(i=>i.value);
+        courses.push({id:Date.now(), name:document.getElementById('cName').value, pars:p, si:s});
+        saveData(); renderAdmin();
+    }
+    function populateDropdown(id, all=false) {
+        const dates = [...new Set(rounds.map(r=>r.date))].sort().reverse();
+        document.getElementById(id).innerHTML = (all ? '<option value="all">All Dates</option>' : '') + dates.map(d=>`<option value="${d}">${d}</option>`).join('');
+    }
+    function renderStats() {
+        const f = document.getElementById('statsDateFilter').value;
+        const filtered = f === 'all' ? rounds : rounds.filter(r=>r.date===f);
+        document.getElementById('stats-body').innerHTML = filtered.map(r => `<tr><td>${r.playerName}</td><td>${r.date}</td><td>${r.points}</td><td><button class="btn-del" onclick="deleteRound('${r.id}')">X</button></td></tr>`).join('');
+    }
+    function deleteRound(id) { rounds = rounds.filter(r=>r.id!=id); saveData(); renderStats(); }
+    function renderLeaderboard() {
+        const t = new Date().toISOString().split('T')[0];
+        const f = rounds.filter(r=>r.date===t).sort((a,b)=>b.points-a.points);
+        document.getElementById('leaderboard-display').innerHTML = f.map(r=>`<div class="item-row"><span>${r.playerName}</span><b>${r.points} pts</b></div>`).join('');
+    }
+    function setupInputGrids() { ['round-scores', 'setup-pars', 'setup-si'].forEach(g => { const el = document.getElementById(g); for(let i=1; i<=18; i++) el.innerHTML += `<div class="hole-input"><label>${i}</label><input type="number" class="${g}-val"></div>`; }); }
+    function factoryReset() { if(confirm("Wipe everything?")) { localStorage.clear(); location.reload(); }}
+    window.onload = () => { loadData(); setupInputGrids(); showTab('tab-dash'); };
+</script>
+</body>
+</html>
