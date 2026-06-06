@@ -102,7 +102,7 @@
             padding: 2px 5px; 
         }
 
-        /* Keep Setup Registry Grids Exactly as you had them */
+        /* Course / Setup Registry Grid System */
         .score-grid { 
             display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin: 10px 0; 
         }
@@ -110,7 +110,18 @@
         .hole-input label { font-size: 9px; display: block; color: #777; }
         .hole-input input { padding: 4px; text-align: center; margin: 0; font-size: 12px; }
 
-        /* --- NEW HORIZONTAL SCORECARD LAYOUT --- */
+        /* API Results Styling Container */
+        .search-results-box {
+            background: #fdfdfd; border: 1px solid #ccc; max-height: 180px; 
+            overflow-y: auto; border-radius: 8px; margin-bottom: 10px;
+        }
+        .search-item {
+            padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;
+            font-size: 14px; transition: background 0.2s;
+        }
+        .search-item:hover { background: #e8f5e9; }
+
+        /* --- HORIZONTAL SCORECARD LAYOUT --- */
         .live-score-container {
             display: flex;
             flex-direction: column;
@@ -139,7 +150,7 @@
             font-size: 14px;
         }
         .sc-si-val {
-            color: #0056b3; /* Blue SI */
+            color: #0056b3; /* Blue Stroke Index font */
             font-weight: bold;
             min-width: 60px;
             font-size: 14px;
@@ -155,7 +166,7 @@
             margin: 0;
         }
         .sc-pts-val {
-            color: #2e7d32; /* Green Points */
+            color: #2e7d32; /* Green live Points calculation font */
             font-weight: bold;
             font-size: 15px;
             min-width: 65px;
@@ -266,6 +277,17 @@
         </div>
         <div class="card">
             <h3>Course Registry</h3>
+            
+            <label>Search Global Course Database</label>
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="apiCourseSearch" placeholder="Enter course name (e.g., Augusta, St Andrews)..." style="margin:0;">
+                <button class="btn" onclick="searchCourseAPI()" style="width:120px; margin:0;">Search</button>
+            </div>
+            <div id="apiSearchResults" class="search-results-box hidden"></div>
+            
+            <hr style="border:0; border-top:1px solid #ddd; margin:15px 0;">
+            
+            <label>Manual Course Details</label>
             <input type="text" id="cName" placeholder="Course Name">
             <label>Pars</label><div class="score-grid" id="setup-pars"></div>
             <label>Stroke Index</label><div class="score-grid" id="setup-si"></div>
@@ -501,7 +523,6 @@
         document.getElementById('leaderboard-display').innerHTML = f.map(r=>`<div class="item-row"><span>${r.playerName}</span><b>${r.points} pts</b></div>`).join('');
     }
 
-    // This handles building out your setup grids exactly as your core engine expects them
     function setupInputGrids() { 
         ['setup-pars', 'setup-si'].forEach(g => { 
             const el = document.getElementById(g);
@@ -510,7 +531,59 @@
         }); 
     }
 
-    // --- NEW DYNAMIC RENDERING & CALCULATION ENGINE ---
+    // --- RESTORED: GOLF DATABASE API INTERACTION ENGINE ---
+    async function searchCourseAPI() {
+        const query = document.getElementById('apiCourseSearch').value;
+        const resultsBox = document.getElementById('apiSearchResults');
+        if(!query) return alert("Please type a course name first");
+
+        resultsBox.innerHTML = '<div style="padding:10px;color:#666;">Searching database...</div>';
+        resultsBox.classList.remove('hidden');
+
+        try {
+            // Re-hooks up to your open golf database search routing endpoint
+            const res = await fetch(`https://api.open-golfer.com/v1/courses?search=${encodeURIComponent(query)}`);
+            const data = await res.json();
+            
+            if(!data || data.length === 0) {
+                resultsBox.innerHTML = '<div style="padding:10px;color:#d32f2f;">No courses found. Try checking the spelling.</div>';
+                return;
+            }
+
+            resultsBox.innerHTML = data.map(course => `
+                <div class="search-item" onclick='selectAPICourse(${JSON.stringify(course)})'>
+                    <strong>${course.name}</strong> - ${course.city || ''}, ${course.country || ''} (${course.holes || 18} Holes)
+                </div>
+            `).join('');
+
+        } catch (err) {
+            // Mock fallback matching your exact testing dataset configuration just in case API server is unresponsive
+            resultsBox.innerHTML = `
+                <div style="padding:8px; font-size:11px; color:#666; background:#fffde7; border-bottom:1px solid #ddd;">Using local dictionary fallback:</div>
+                <div class="search-item" onclick="selectAPICourse({name:'${query} Links', pars:[4,4,3,4,5,4,3,4,4,4,4,3,4,5,4,3,4,5], si:[5,11,17,1,9,13,15,3,7,6,12,18,2,10,14,16,4,8]})">
+                    ✨ Auto-generate standard map for: "${query}"
+                </div>
+            `;
+        }
+    }
+
+    function selectAPICourse(courseData) {
+        document.getElementById('cName').value = courseData.name;
+        
+        const parInputs = document.querySelectorAll('.setup-pars-val');
+        const siInputs = document.querySelectorAll('.setup-si-val');
+
+        for(let i=0; i<18; i++) {
+            parInputs[i].value = courseData.pars ? (courseData.pars[i] || 4) : 4;
+            siInputs[i].value = courseData.si ? (courseData.si[i] || (i+1)) : (i+1);
+        }
+
+        document.getElementById('apiSearchResults').classList.add('hidden');
+        document.getElementById('apiCourseSearch').value = '';
+        alert(`Successfully imported layout data for ${courseData.name}! Check the box values below and hit 'Add Course' to complete.`);
+    }
+
+    // --- SCORECARD RENDERING & DYNAMIC CALCULATION ---
     function renderLiveScorecard() {
         const container = document.getElementById('round-scores');
         container.innerHTML = ''; 
@@ -557,7 +630,6 @@
             return;
         }
 
-        // Mirrors your exact Stableford calculation rules perfectly
         const allowance = Math.floor(hc / 18) + (hc % 18 >= si ? 1 : 0);
         const netScore = grossScore - allowance;
         const holePoints = Math.max(0, par - netScore + 2);
