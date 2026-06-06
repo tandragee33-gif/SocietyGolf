@@ -1007,12 +1007,25 @@ function updateScorecardInfo() {
 
     const pars = course.pars || [];
     const si = course.si || [];
+    const yards = course.yards || [];
+
+    // --- FIX: This fills in the background table rows shown in your picture ---
+    if (document.getElementById('par-row')) {
+        document.getElementById('par-row').innerHTML = '<td><b>Par</b></td>' + pars.map(p => `<td>${p || '-'}</td>`).join('');
+    }
+    if (document.getElementById('yards-row')) {
+        document.getElementById('yards-row').innerHTML = '<td><b>Yds</b></td>' + yards.map(y => `<td>${y || '-'}</td>`).join('');
+    }
+    if (document.getElementById('si-row')) {
+        document.getElementById('si-row').innerHTML = '<td><b>SI</b></td>' + si.map(s => `<td>${s || '-'}</td>`).join('');
+    }
+
     const player = players.find(p => p.id == playerId);
     const hc = player ? Math.round(parseFloat(player.handicap)) || 0 : 0;
 
     let html = `<div class="gb-matrix-container">`;
 
-    // Define the three 6-hole splits
+    // Define our 3 clean sections of 6 holes
     const sections = [
         { label: "Holes 1 - 6", holes: [1, 2, 3, 4, 5, 6] },
         { label: "Holes 7 - 12", holes: [7, 8, 9, 10, 11, 12] },
@@ -1050,7 +1063,6 @@ function updateScorecardInfo() {
         </table>`;
     });
 
-    // Bottom running summary banner matching GameBook parameters
     html += `
         <div class="gb-summary-banner">
             <div class="gb-sum-item">Total Par: <span id="gb-tot-par-val">-</span></div>
@@ -1061,9 +1073,10 @@ function updateScorecardInfo() {
 
     container.innerHTML = html;
     
-    // Calculate course static par total
     let totalCoursePar = pars.reduce((a, b) => (parseInt(a) || 0) + (parseInt(b) || 0), 0);
-    document.getElementById('gb-tot-par-val').innerText = totalCoursePar || 72;
+    if (document.getElementById('gb-tot-par-val')) {
+        document.getElementById('gb-tot-par-val').innerText = totalCoursePar || 72;
+    }
     refreshRunningTotals();
 }
 function processGbLiveScore(holeNum, par, si, hc) {
