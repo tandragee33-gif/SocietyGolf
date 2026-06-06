@@ -1080,14 +1080,32 @@ function processGbLiveScore(holeNum, par, si, hc) {
     const val = parseInt(inputField.value) || 0;
     const ptsDisplay = document.getElementById(`hole-pts-${holeNum}`);
 
+    // Clean up the handicap number to make sure it handles decimals correctly
+    const cleanHc = Math.round(parseFloat(hc)) || 0;
+
     if (val <= 0) {
         ptsDisplay.innerText = "-";
     } else {
-        const allowance = Math.floor(hc / 18) + (hc % 18 >= si ? 1 : 0);
+        // Official Stableford Points Rule Formula
+        const allowance = Math.floor(cleanHc / 18) + (cleanHc % 18 >= si ? 1 : 0);
         const netScore = val - allowance;
         const points = Math.max(0, par - netScore + 2);
+        
         ptsDisplay.innerText = points;
     }
+
+    refreshRunningTotals();
+
+    // --- INSTANT AUTO-HOP ENGINE ---
+    if (inputField.value.length >= 1) {
+        const nextHole = holeNum + 1;
+        const nextInput = document.getElementById(`hole-score-${nextHole}`);
+        if (nextInput) {
+            nextInput.focus();
+            nextInput.select();
+        }
+    }
+}
 
     refreshRunningTotals();
 
