@@ -4,6 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Golf Pro Manager - Tournament Edition</title>
+/* --- LIVE SCORECARD HORIZONTAL LAYOUT STYLES --- */
+.live-score-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 15px 0;
+}
+.hole-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fdfdfd;
+    padding: 10px 14px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+.sc-hole-num {
+    font-weight: bold;
+    min-width: 60px;
+    color: #2e7d32; /* Green brand accent color */
+    font-size: 14px;
+}
+.sc-par-val {
+    color: #555;
+    min-width: 50px;
+    font-size: 14px;
+}
+.sc-si-val {
+    color: #0056b3; 
+    font-weight: bold;
+    min-width: 60px;
+    font-size: 14px;
+}
+.hole-row input {
+    width: 70px !important;
+    padding: 6px !important;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    margin: 0 !important;
+}
+.sc-pts-val {
+    color: #2e7d32; 
+    font-weight: bold;
+    font-size: 15px;
+    min-width: 65px;
+    text-align: right;
+}
     <style>
         :root { --primary: #1b5e20; --accent: #ffd700; --danger: #d32f2f; --light: #f4f4f4; --success: #2e7d32; --info: #0288d1; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #e0e0e0; color: #333; }
@@ -180,7 +231,7 @@
     </table>
 </div>
 
-<div class="score-grid" id="round-scores"></div>
+<div class="live-score-container" id="round-scores"></div>
 <div style="margin: 10px 0; display: flex; gap: 10px;">
     <div style="flex: 1;">
         <label style="font-size: 11px; display: block;">Longest Drive</label>
@@ -791,81 +842,18 @@ localStorage.setItem('g_compTeams', JSON.stringify(competitionTeams));
     }
 
 function setupInputGrids() {
-
-    // ROUND SCORECARD
-    const roundEl =
-        document.getElementById('round-scores');
-
-    roundEl.innerHTML = '';
-
-    for (let i = 1; i <= 18; i++) {
-
-        roundEl.innerHTML += `
-        <div class="hole-input"
-             style="border:1px solid #ddd;
-                    border-radius:10px;
-                    padding:8px;
-                    background:#fafafa;
-                    text-align:center;">
-
-            <div style="font-size:11px;
-                        color:#666;">
-                Hole
-            </div>
-
-            <div style="font-weight:bold;
-                        font-size:16px;">
-                ${i}
-            </div>
-
-            <input type="number"
-                   inputmode="numeric"
-                   class="round-scores-val"
-                   style="font-size:20px;
-                          font-weight:bold;
-                          text-align:center;
-                          margin-top:8px;"
-                   oninput="moveToNext(this); colorLive(this)">
-        </div>`;
-    }
-
-    // COURSE SETUP GRIDS
+    // COURSE SETUP GRIDS (Preserved for manual course creation layout tracking)
     ['setup-pars', 'setup-si'].forEach(g => {
-
-        const el =
-            document.getElementById(g);
-
+        const el = document.getElementById(g);
         el.innerHTML = '';
-
         for (let i = 1; i <= 18; i++) {
-
             el.innerHTML += `
-            <div class="hole-input">
-                <label>${i}</label>
-                <input type="number"
-                       class="${g}-val">
-            </div>`;
+                <div class="hole-input">
+                    <label>${i}</label>
+                    <input type="number" class="${g}-val">
+                </div>`;
         }
     });
-}
-function moveToNext(input) {
-
-    const inputs =
-        Array.from(
-            document.querySelectorAll(
-                '.round-scores-val'
-            )
-        );
-
-    const index =
-        inputs.indexOf(input);
-
-    if (
-        input.value &&
-        index < inputs.length - 1
-    ) {
-        inputs[index + 1].focus();
-    }
 }
 
     function showTab(id) {
@@ -913,53 +901,65 @@ function populateRoundSelectors() {
 }
 
 function updateScorecardInfo() {
-
-    const courseId =
-        document.getElementById('rCourse').value;
-
-    const course =
-        courses.find(
-            c => c.id == courseId
-        );
+    const courseId = document.getElementById('rCourse').value;
+    const playerId = document.getElementById('rPlayer').value;
+    const course = courses.find(c => c.id == courseId);
 
     if (!course) return;
 
-console.log(course);
+    const pars = course.pars || [];
+    const si = course.si || [];
+    const yards = course.yards || [];
 
-    const pars =
-        course.pars || [];
+    // Update metadata table rows
+    document.getElementById('par-row').innerHTML = '<td><b>Par</b></td>' + pars.map(p => `<td>${p || '-'}</td>`).join('');
+    document.getElementById('yards-row').innerHTML = '<td><b>Yds</b></td>' + yards.map(y => `<td>${y || '-'}</td>`).join('');
+    document.getElementById('si-row').innerHTML = '<td><b>SI</b></td>' + si.map(s => `<td>${s || '-'}</td>`).join('');
 
-    const si =
-        course.si || [];
+    // Generate horizontal layout rows dynamically
+    const container = document.getElementById('round-scores');
+    container.innerHTML = '';
 
-const yards =
-    course.yards || [];
+    const player = players.find(p => p.id == playerId);
+    const hc = player ? parseInt(player.handicap) || 0 : 0;
 
-    document.getElementById(
-        'par-row'
-    ).innerHTML =
-        '<td><b>Par</b></td>' +
-        pars.map(p =>
-            `<td>${p || '-'}</td>`
-        ).join('');
+    for (let i = 1; i <= 18; i++) {
+        const holePar = parseInt(pars[i - 1]) || 4;
+        const holeSi = parseInt(si[i - 1]) || i;
 
-    document.getElementById(
-        'yards-row'
-    ).innerHTML =
-        '<td><b>Yds</b></td>' +
-        yards.map(y =>
-            `<td>${y || '-'}</td>`
-        ).join('');
-
-    document.getElementById(
-        'si-row'
-    ).innerHTML =
-        '<td><b>SI</b></td>' +
-        si.map(s =>
-            `<td>${s || '-'}</td>`
-        ).join('');
+        container.innerHTML += `
+            <div class="hole-row">
+                <span class="sc-hole-num">Hole ${i}</span>
+                <span class="sc-par-val">Par ${holePar}</span>
+                <span class="sc-si-val">SI ${holeSi}</span>
+                <input type="number" 
+                       inputmode="numeric"
+                       class="round-scores-val" 
+                       id="hole-score-${i}"
+                       placeholder="-"
+                       min="1" 
+                       oninput="calculateLiveHolePoints(${i}, ${holePar}, ${holeSi}, ${hc}); moveToNext(this); colorLive(this)">
+                <span class="sc-pts-val" id="hole-pts-${i}">0 pts</span>
+            </div>
+        `;
+    }
 }
+function calculateLiveHolePoints(holeNum, par, si, hc) {
+    const grossScore = parseInt(document.getElementById(`hole-score-${holeNum}`).value) || 0;
+    const ptsDisplay = document.getElementById(`hole-pts-${holeNum}`);
 
+    if (grossScore <= 0) {
+        ptsDisplay.innerText = "0 pts";
+        return;
+    }
+
+    // Determine handicap strokes allocated for this hole
+    const allowance = Math.floor(hc / 18) + (hc % 18 >= si ? 1 : 0);
+    const netScore = grossScore - allowance;
+    const holePoints = Math.max(0, par - netScore + 2);
+
+    ptsDisplay.innerText = `${holePoints} pts`;
+}
     function saveClubProfile() {
         club.name = document.getElementById('setupClubName').value;
         saveData();
@@ -1222,35 +1222,34 @@ function saveRound() {
     
     if(!cId || !pId) return alert("Select course and player.");
     
-    // Find the course and player objects first
     const crs = courses.find(c => String(c.id) === String(cId));
     const plr = players.find(p => String(p.id) === String(pId));
     
-    // Safety check in case the course or player wasn't found
     if (!crs || !plr) return alert("Course or Player data missing in Registry.");
 
     const isoDate = parseDateInput(document.getElementById('rDate').value);
-    const scs = Array.from(document.querySelectorAll('.round-scores-val')).map(i => parseInt(i.value) || 0);
+    
+    let scs = [];
+    let ptsArray = [];
 
-    // Calculate the points array
-const ptsArray = scs.map((s, i) => {
-        if(s <= 0) return 0;
-        
-        const par = parseInt(crs.pars[i]) || 0;
-        const si = parseInt(crs.si[i]) || 0; // Force to Number
-       const hc = Math.round(parseFloat(plr.handicap)) || 0; // Round the decimal
-console.log("Player:", plr.name, "Raw HC:", plr.handicap, "Rounded HC:", hc); 
-        
-        // 1. Calculate strokes for this hole
-        // If handicap is 1, and si is 1: (0) + (1 >= 1 ? 1 : 0) = 1 stroke.
-        const allow = Math.floor(hc / 18) + (hc % 18 >= si ? 1 : 0);
-        
-        // 2. Calculate Net Score
-        const netScore = s - allow;
-        
-        // 3. Stableford formula: Par - Net + 2 (cannot be less than 0)
-        return Math.max(0, par - netScore + 2);
-    });
+    // Read values directly from your modern horizontal input items
+    for (let i = 1; i <= 18; i++) {
+        const inputElement = document.getElementById(`hole-score-${i}`);
+        const s = inputElement ? (parseInt(inputElement.value) || 0) : 0;
+        scs.push(s);
+
+        if (s <= 0) {
+            ptsArray.push(0);
+        } else {
+            const par = parseInt(crs.pars[i - 1]) || 4;
+            const si = parseInt(crs.si[i - 1]) || i;
+            const hc = Math.round(parseFloat(plr.handicap)) || 0;
+            
+            const allow = Math.floor(hc / 18) + (hc % 18 >= si ? 1 : 0);
+            const netScore = s - allow;
+            ptsArray.push(Math.max(0, par - netScore + 2));
+        }
+    }
 
     const totalPts = ptsArray.reduce((a, b) => a + b, 0);
 
@@ -1263,10 +1262,10 @@ console.log("Player:", plr.name, "Raw HC:", plr.handicap, "Rounded HC:", hc);
         playerName: plr.name,
         points: totalPts,
         scores: scs,
-        pointsArray: ptsArray, // This connects to your Team tab
+        pointsArray: ptsArray,
         season: isoDate.split('-')[0],
-longDrive: document.getElementById('rLongDrive').value === "Yes",
-nearPin: document.getElementById('rNearPin').value === "Yes"
+        longDrive: document.getElementById('rLongDrive').value === "Yes",
+        nearPin: document.getElementById('rNearPin').value === "Yes"
     };
 
     if(id) {
@@ -1274,92 +1273,90 @@ nearPin: document.getElementById('rNearPin').value === "Yes"
     } else {
         rounds.push(r);
     }
-// // --- Society Handicap Adjustment ---
-// // Winner gets cut (-2), Last place gets a buffer (+1)
-// const allScores = rounds.filter(r => r.date === isoDate).sort((a,b) => b.points - a.points);
-// 
-// if (allScores.length >= 3) { // Only adjust if at least 3 players played
-//     const winnerId = allScores[0].playerId;
-//     const lastId = allScores[allScores.length - 1].playerId;
-// 
-//     players = players.map(p => {
-//         let newHC = parseFloat(p.handicap) || 0;
-//         if (p.id === winnerId) newHC -= 2.0; // Cut the winner
-//         if (p.id === lastId) newHC += 1.0;   // Help the last player
-//         
-//         return { ...p, handicap: newHC.toFixed(1) };
-//     });
-// }
-    // 1. Save the data to the memory
+
     saveData();
-
-    // 2. Refresh all the screens so they show the new data
-    renderStats();     
+    renderStats();  
     renderDashboard(); 
-
-    // 3. The "Eraser": Wipe the form clean for next time
     resetRoundForm();
 
-    // 4. Reset the box colors back to neutral
     document.querySelectorAll('.round-scores-val').forEach(input => colorLive(input));
 
-    // 5. Tell the user it's done, then move to the Stats page
     alert("Round Saved!");
     showTab('tab-stats');
 }
 
-    function renderStats() {
-        const filterVal = document.getElementById('statsFilterDate').value; 
-        let data = rounds.sort((a,b) => new Date(b.date) - new Date(a.date));
-        if(filterVal) data = data.filter(r => r.date.startsWith(filterVal));
-        document.getElementById('stats-body').innerHTML = data.map(r => `<tr><td><b>${r.playerName}</b><br><small>${r.courseName}</small></td><td>${formatDateDisplay(r.date)}</td><td style="color: ${getScoreColor(r.points)}; font-weight: bold;">${r.points}</td><td><button class="btn-outline" onclick="editRound('${r.id}')">Edit</button> <button class="btn-del" onclick="deleteRound('${r.id}')">X</button></td></tr>`).join('');
+function renderStats() {
+    const filterVal = document.getElementById('statsFilterDate').value; 
+    let data = rounds.sort((a,b) => new Date(b.date) - new Date(a.date));
+    if(filterVal) data = data.filter(r => r.date.startsWith(filterVal));
+    document.getElementById('stats-body').innerHTML = data.map(r => 
+        `<tr><td><b>${r.playerName}</b><br><small>${r.courseName}</small></td><td>${formatDateDisplay(r.date)}</td><td style="color: ${getScoreColor(r.points)}; font-weight: bold;">${r.points}</td><td><button class="btn-outline" onclick="editRound('${r.id}')">Edit</button> <button class="btn-del" onclick="deleteRound('${r.id}')">X</button></td></tr>`).join('');
+}
+
+function clearStatsFilter() { document.getElementById('statsFilterDate').value = ''; renderStats(); }
+
+function editRound(id) {
+    const r = rounds.find(x => String(x.id) === String(id));
+    if (!r) return;
+
+    showTab('tab-comp');
+    document.getElementById('editRoundId').value = r.id;
+    document.getElementById('rDate').value = formatDateDisplay(r.date);
+    document.getElementById('rCourse').value = r.courseId;
+    document.getElementById('rPlayer').value = r.playerId;
+    
+    // Draw scorecard rows first
+    updateScorecardInfo();
+
+    // Populate the newly created input fields
+    for (let i = 1; i <= 18; i++) {
+        const inputElement = document.getElementById(`hole-score-${i}`);
+        if (inputElement) {
+            inputElement.value = r.scores[i - 1] || '';
+            colorLive(inputElement);
+            
+            const crs = courses.find(c => String(c.id) === String(r.courseId));
+            const plr = players.find(p => String(p.id) === String(r.playerId));
+            if (crs && plr) {
+                const par = parseInt(crs.pars[i - 1]) || 4;
+                const si = parseInt(crs.si[i - 1]) || i;
+                const hc = Math.round(parseFloat(plr.handicap)) || 0;
+                calculateLiveHolePoints(i, par, si, hc);
+            }
+        }
+    }
+}
+
+function deleteRound(id) { if(confirm("Delete?")) { rounds = rounds.filter(x => String(x.id) !== String(id)); saveData(); renderStats(); renderDashboard(); } }
+
+function resetRoundForm() {
+    document.getElementById('editRoundId').value = '';
+    
+    const container = document.getElementById('round-scores');
+    if (container) {
+        container.innerHTML = '<p style="text-align:center;color:#777;padding:15px;font-weight:500;">Please select a registered course and player above to begin tracking score.</p>';
     }
 
-    function clearStatsFilter() { document.getElementById('statsFilterDate').value = ''; renderStats(); }
+    document.getElementById('rLongDrive').value = 'No';
+    document.getElementById('rNearPin').value = 'No';
+    const now = new Date();
+    document.getElementById('rDate').value = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+    populateRoundSelectors();
+}
 
-    function editRound(id) {
-        const r = rounds.find(x => String(x.id) === String(id));
-        showTab('tab-comp');
-        document.getElementById('editRoundId').value = r.id;
-        document.getElementById('rDate').value = formatDateDisplay(r.date);
-        document.getElementById('rCourse').value = r.courseId;
-        document.getElementById('rPlayer').value = r.playerId;
-        document.querySelectorAll('.round-scores-val').forEach((inp, i) => inp.value = r.scores[i]);
-    }
-
-    function deleteRound(id) { if(confirm("Delete?")) { rounds = rounds.filter(x => String(x.id) !== String(id)); saveData(); renderStats(); renderDashboard(); } }
-
-    function resetRoundForm() {
-        document.getElementById('editRoundId').value = '';
-        document.querySelectorAll('.round-scores-val')
-.forEach(i => {
-    i.value = '';
-    i.style.color = '#333';
-});
-document.querySelectorAll('.round-scores-val')
-    .forEach(i => {
-        i.style.color = '#333';
-    });
- document.getElementById('rLongDrive').value = 'No';
-document.getElementById('rNearPin').value = 'No';
-        const now = new Date();
-        document.getElementById('rDate').value = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
-        populateRoundSelectors();
-document.querySelectorAll('.round-scores-val')[0]?.focus();
-    }
-
-    function savePlayer() {
-        const id = document.getElementById('editPlayerId').value, p = { id: id || 'p' + Date.now(), name: document.getElementById('pName').value, handicap: document.getElementById('pHC').value };
-        if(id) players = players.map(x => String(x.id) === String(id) ? p : x); else players.push(p);
-        document.getElementById('editPlayerId').value = ''; document.getElementById('pName').value = ''; document.getElementById('pHC').value = '';
-        saveData(); renderAdmin();
-    }
+function savePlayer() {
+    const id = document.getElementById('editPlayerId').value, p = { id: id || 'p' + Date.now(), name: document.getElementById('pName').value, handicap: document.getElementById('pHC').value };
+    if(id) players = players.map(x => String(x.id) === String(id) ? p : x); else players.push(p);
+    document.getElementById('editPlayerId').value = '';
+    document.getElementById('pName').value = '';
+    document.getElementById('pHC').value = '';
+    saveData();
+    renderAdmin();
+}
 
 function saveCourse() {
-    // 1. Get the data from the boxes
     const id = document.getElementById('editCourseId').value;
     const cNameInput = document.getElementById('cName');
-
     const c = {
         id: id || 'c' + Date.now(),
         name: cNameInput.value,
@@ -1367,54 +1364,42 @@ function saveCourse() {
         si: Array.from(document.querySelectorAll('.setup-si-val')).map(i => i.value),
         yards: window.tempYards || []
     };
-
-    // 2. Save it to the list
-    if (id) {
-        courses = courses.map(x => String(x.id) === String(id) ? c : x);
-    } else {
-        courses.push(c);
-    }
-
-    // 3. THE FIX: Empty the boxes so they are blank for next time
-    document.getElementById('editCourseId').value = ''; // Clears the hidden ID
-    cNameInput.value = ''; // Clears the Course Name box
-    
-    // Clear all the Par and SI boxes
+    if (id) { courses = courses.map(x => String(x.id) === String(id) ? c : x); } else { courses.push(c); }
+    document.getElementById('editCourseId').value = '';
+    cNameInput.value = '';
     document.querySelectorAll('.setup-pars-val').forEach(i => i.value = '');
     document.querySelectorAll('.setup-si-val').forEach(i => i.value = '');
-
-    // 4. Update the memory and the screen
     saveData();
     renderAdmin();
-
     alert('Course saved and form cleared!');
 }
 
-    function renderAdmin() {
-        document.getElementById('admin-players').innerHTML = players.map(p => `<div class="item-row"><span>${p.name} (HC: ${p.handicap})</span><div style="display:flex; gap:5px;"><button class="btn-outline" onclick="editPlayer('${p.id}')">Edit</button><button class="btn-del" onclick="deletePlayer('${p.id}')">Delete</button></div></div>`).join('');
-        document.getElementById('admin-courses').innerHTML = courses.map(c => `<div class="item-row"><span>${c.name}</span><div style="display:flex; gap:5px;"><button class="btn-outline" onclick="editCourse('${c.id}')">Edit</button><button class="btn-del" onclick="deleteCourse('${c.id}')">Delete</button></div></div>`).join('');
-    }
+function renderAdmin() {
+    document.getElementById('admin-players').innerHTML = players.map(p => `<div class="item-row"><span>${p.name} (HC: ${p.handicap})</span><div style="display:flex; gap:5px;"><button class="btn-outline" onclick="editPlayer('${p.id}')">Edit</button><button class="btn-del" onclick="deletePlayer('${p.id}')">Delete</button></div></div>`).join('');
+    document.getElementById('admin-courses').innerHTML = courses.map(c => `<div class="item-row"><span>${c.name}</span><div style="display:flex; gap:5px;"><button class="btn-outline" onclick="editCourse('${c.id}')">Edit</button><button class="btn-del" onclick="deleteCourse('${c.id}')">Delete</button></div></div>`).join('');
+}
 
-    function editPlayer(id) { 
-        const p = players.find(x => String(x.id) === String(id));
-        document.getElementById('editPlayerId').value = p.id;
-        document.getElementById('pName').value = p.name;
-        document.getElementById('pHC').value = p.handicap;
-    }
+function editPlayer(id) { 
+    const p = players.find(x => String(x.id) === String(id));
+    document.getElementById('editPlayerId').value = p.id;
+    document.getElementById('pName').value = p.name;
+    document.getElementById('pHC').value = p.handicap;
+}
 
-    function deletePlayer(id) { if(confirm("Delete?")) { players = players.filter(x => String(x.id) !== String(id)); saveData(); renderAdmin(); } }
+function deletePlayer(id) { if(confirm("Delete?")) { players = players.filter(x => String(x.id) !== String(id)); saveData(); renderAdmin(); } }
 
-    function editCourse(id) {
-        const c = courses.find(x => String(x.id) === String(id));
-        document.getElementById('editCourseId').value = c.id;
-        document.getElementById('cName').value = c.name;
-        document.querySelectorAll('.setup-pars-val').forEach((inp, i) => inp.value = c.pars[i]);
-        document.querySelectorAll('.setup-si-val').forEach((inp, i) => inp.value = c.si[i]);
-    }
+function editCourse(id) {
+    const c = courses.find(x => String(x.id) === String(id));
+    document.getElementById('editCourseId').value = c.id;
+    document.getElementById('cName').value = c.name;
+    document.querySelectorAll('.setup-pars-val').forEach((inp, i) => inp.value = c.pars[i]);
+    document.querySelectorAll('.setup-si-val').forEach((inp, i) => inp.value = c.si[i]);
+}
 
-    function deleteCourse(id) { if(confirm("Delete?")) { courses = courses.filter(x => String(x.id) !== String(id)); saveData(); renderAdmin(); } }
+function deleteCourse(id) { if(confirm("Delete?")) { courses = courses.filter(x => String(x.id) !== String(id)); saveData(); renderAdmin(); } }
 
-    function factoryReset() { if(confirm("DANGER: This wipes EVERYTHING. Continue?")) { localStorage.clear(); location.reload(); } }
+function factoryReset() { if(confirm("DANGER: This wipes EVERYTHING. Continue?")) { localStorage.clear(); location.reload(); } }
+
 let competitionTeams = [];
 
 function renderTeamSelector() {
@@ -1422,34 +1407,19 @@ function renderTeamSelector() {
     document.getElementById('tmDate').value = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
     document.getElementById('team-selector').innerHTML = players.map(p => `
         <div class="selector-item">
-            <label>${p.name}</label>
+           <label>${p.name}</label>
             <input type="checkbox" class="tm-ck" value="${p.id}">
         </div>`).join('');
 }
 
 function addTeam() {
     const selected = document.querySelectorAll('.tm-ck:checked');
+    if (selected.length < 2) return alert("You must select at least 2 players!");
+    if (selected.length > 4) return alert("A team can have a maximum of 4 players!");
     
-    // 1. Check the Minimum (less than 2)
-    if (selected.length < 2) {
-        return alert("You must select at least 2 players!");
-    }
-
-    // 2. NEW: Check the Maximum (greater than 4)
-    if (selected.length > 4) {
-        return alert("A team can have a maximum of 4 players!");
-    }
-    
-    // ... the rest of your code stays exactly the same ...
     const teamPlayers = Array.from(selected).map(ck => players.find(p => p.id == ck.value));
-   
-    competitionTeams.push({ 
-        id: competitionTeams.length + 1, 
-        members: teamPlayers 
-    });
-   
+    competitionTeams.push({ id: competitionTeams.length + 1, members: teamPlayers });
     selected.forEach(ck => ck.checked = false); 
-   
     renderActiveTeams();
     saveData(); 
     alert("Team added!"); 
@@ -1461,7 +1431,7 @@ function renderActiveTeams() {
     `).join('');
 }
 
-let teamBreakdowns = {}; // This is a memory bank for the details
+let teamBreakdowns = {};
 
 function calculateTeamResults() {
     const matchDate = parseDateInput(document.getElementById('tmDate').value);
@@ -1477,14 +1447,10 @@ function calculateTeamResults() {
 
             team.members.forEach(player => {
                 const round = rounds.find(r => r.date === matchDate && r.playerName === player.name);
-                
                 let pointsForHole = 0;
-                
-                // CHANGE THIS LINE: Change 'round.points' to 'round.pointsArray'
                 if (round && round.pointsArray && round.pointsArray[i] !== undefined) {
                     pointsForHole = parseInt(round.pointsArray[i]) || 0;
                 }
-                
                 pPoints.push(pointsForHole);
             });
 
@@ -1514,8 +1480,8 @@ function calculateTeamResults() {
     leaderboard.map((r, i) => `
         <div class="match-card" onclick="viewTeamDetail('${r.name}', ${r.total})" style="cursor:pointer">
             <div class="item-row">
-               <span><b>${i+1}. ${r.name}</b><br><small>${r.players}</small></span>
-               <span><b>${r.total} pts ></b></span>
+              <span><b>${i+1}. ${r.name}</b><br><small>${r.players}</small></span>
+              <span><b>${r.total} pts ></b></span>
             </div>
         </div>`).join('');
 }
@@ -1525,17 +1491,16 @@ function resetTeamComp() {
     document.getElementById('tm-active-teams').innerHTML = '';
     document.getElementById('team-results-output').innerHTML = '';
 }
+
 function viewTeamDetail(teamName, totalScore) {
     const data = teamBreakdowns[teamName];
     document.getElementById('tm-details').classList.remove('hidden');
     
-    // This line adds the green "Save" button to the top of the details table
     let tableHtml = `<h3>${teamName} Breakdown</h3>
-                     <button class="btn-save-comp no-print" onclick="saveTeamToHistory('${teamName}', ${totalScore})">Save this Team to History</button>
-                     <p>${data.names.join(' / ')}</p>`;
+                    <button class="btn-save-comp no-print" onclick="saveTeamToHistory('${teamName}', ${totalScore})">Save this Team to History</button>
+                    <p>${data.names.join(' / ')}</p>`;
     
-    tableHtml += `<table class="report-table">
-                    <tr><th>Hole</th><th>Player Scores</th><th>Pts Counted</th></tr>`;
+    tableHtml += `<table class="report-table"><tr><th>Hole</th><th>Player Scores</th><th>Pts Counted</th></tr>`;
     
     data.holes.forEach(h => {
         tableHtml += `<tr>
@@ -1546,171 +1511,12 @@ function viewTeamDetail(teamName, totalScore) {
     });
     
     tableHtml += `<tr><td colspan="2"><b>FINAL TOTAL</b></td><td><b>${totalScore}</b></td></tr></table>`;
-    
     document.getElementById('tm-details-content').innerHTML = tableHtml;
     document.getElementById('tm-details').scrollIntoView({ behavior: 'smooth' });
 }
-function exportMasterReport() {
-    const dateInput = prompt("Enter the date to export (dd/mm/yyyy):");
-    if (!dateInput) return;
 
-    const searchDateStr = parseDateInput(dateInput); 
-    const dailyRounds = rounds.filter(r => r.date === searchDateStr);
-    const dailyComps = pastComps.filter(c => c.date === dateInput);
-
-    if (dailyRounds.length === 0 && dailyComps.length === 0) {
-        return alert("No data found for this date.");
-    }
-
-    let logoHtml = club.logo ? `<img src="${club.logo}" style="max-height: 80px; margin-bottom: 10px;">` : '';
-
-    let reportContent = `
-    <html>
-    <head>
-        <title>Tournament Report - ${dateInput}</title>
-        <style>
-            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 20px; color: #333; line-height: 1.4; }
-            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
-            .section-title { 
-                background: #f4f4f4; border-left: 6px solid #222; 
-                padding: 12px; margin: 30px 0 10px 0; 
-                font-weight: bold; text-transform: uppercase; letter-spacing: 1px;
-            }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 25px; table-layout: fixed; }
-            th, td { border: 1px solid #ddd; padding: 12px 8px; text-align: left; font-size: 14px; }
-            th { background: #f8f8f8; color: #666; text-transform: uppercase; font-size: 11px; }
-            .col-rank { width: 100px; text-align: center; }
-            .col-pts { width: 90px; text-align: right; font-weight: bold; }
-            .winner-row { background-color: #fffdf0; }
-            .trophy { color: #d4af37; margin-right: 5px; font-size: 1.2em; }
-            .score-grid td, .score-grid th { text-align: center; font-size: 12px; padding: 8px 2px; }
-            .h-num { background: #f9f9f9; font-weight: bold; width: 70px; }
-            @media print { body { padding: 0; } .section-title { -webkit-print-color-adjust: exact; } }
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            ${logoHtml}
-            <h1 style="margin:0;">${club.name}</h1>
-            <h3 style="margin:5px 0; color:#666;">Tournament Master Report</h3>
-            <p>Date: ${dateInput}</p>
-        </div>`;
-
-    // 1. INDIVIDUAL LEADERBOARD
-    if (dailyRounds.length > 0) {
-        dailyRounds.sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
-    return getTieBreaker(b.pointsArray) - getTieBreaker(a.pointsArray);
-});
-        reportContent += `<div class="section-title">Individual Leaderboard</div>
-        <table>
-            <thead>
-                <tr>
-                    <th class="col-rank">Position</th>
-                    <th>Player Name</th><th class="col-pts">Points</th><th>Awards</th> 
-                </tr>
-            </thead>
-            <tbody>` + 
-          dailyRounds.map((r, i) => `
-        <tr class="${i === 0 ? 'winner-row' : ''}">
-            <td class="col-rank">${i+1}</td>
-            <td>${i === 0 ? '<span class="trophy">🏆</span>' : ''}${r.playerName}</td>
-            <td class="col-pts">${r.points}</td>
-            <td>${r.longDrive ? 'LD ' : ''}${r.nearPin ? 'NP' : ''}</td>
-        </tr>`).join('') + 
-    `</tbody></table>`;
-}
-
-    // 2. SEGMENTED EVENT RESULTS
-    if (dailyComps.length > 0) {
-        // Group results by their type (e.g., "Team Event", "Doubles", etc.)
-        const groups = dailyComps.reduce((acc, comp) => {
-            if (!acc[comp.type]) acc[comp.type] = [];
-            acc[comp.type].push(comp);
-            return acc;
-        }, {});
-
-        // Loop through each group to create its own table
-        Object.keys(groups).forEach(type => {
-            const entries = groups[type];
-            
-            // Sort entries within this group by score (highest first)
-            entries.sort((a, b) => {
-                const scoreA = parseInt(a.detail) || 0;
-                const scoreB = parseInt(b.detail) || 0;
-                return scoreB - scoreA;
-            });
-
-            reportContent += `<div class="section-title">${type} Results</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th class="col-rank">Position</th>
-                        <th>Winner / Team Members</th>
-                        <th class="col-pts">Result</th>
-                    </tr>
-                </thead>
-                <tbody>` + 
-                entries.map((c, i) => `
-                    <tr class="${i === 0 ? 'winner-row' : ''}">
-                        <td class="col-rank">${i === 0 ? '<b>WINNER</b>' : (i + 1) + ' Place'}</td>
-                        <td>${i === 0 ? '<span class="trophy">🏆</span>' : ''}<b>${c.winner}</b></td>
-                        <td class="col-pts">${c.detail}</td>
-                    </tr>`).join('') + 
-                `</tbody></table>`;
-        });
-    }
-
-    // 3. CHAMPIONS SCORECARD (Best Team Only)
-    const topTeam = dailyComps.filter(c => c.type === 'Team Event')
-                              .sort((a, b) => (parseInt(b.detail) || 0) - (parseInt(a.detail) || 0))[0];
-
-    if (topTeam) {
-        const teamKey = topTeam.winner.split(':')[0].trim();
-        const details = topTeam.breakdown ? topTeam : teamBreakdowns[teamKey];
-        
-        if (details) {
-            const hData = details.breakdown || details.holes;
-            const names = details.playerNames || details.names;
-
-            reportContent += `
-                <div style="page-break-before: always;">
-                    <div class="section-title">Champions Scorecard: ${teamKey}</div>
-                    <table class="score-grid">
-                        <thead>
-                            <tr style="background:#222; color:#fff;">
-                                <th class="h-num" style="color:white;">Hole</th>
-                                ${names.map(n => `<th style="color:white;">${n.split(' ')[0]}</th>`).join('')}
-                                <th style="color:white; width:70px;">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>` + 
-                        hData.map(h => `
-                            <tr>
-                                <td class="h-num">Hole ${h.hole}${ (h.hole==9||h.hole==18) ? '*' : '' }</td>
-                                ${h.all.map(p => `<td>${p}</td>`).join('')}
-                                <td style="background:#f2f2f2; font-weight:bold;">${h.counted}</td>
-                            </tr>`).join('') + 
-                        `</tbody>
-                    </table>
-                    <p style="font-size:11px; font-style:italic;">* Holes 9 & 18: All scores count. Other holes: Best 2 scores count.</p>
-                </div>`;
-        }
-    }
-
-    reportContent += `</body></html>`;
-
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(reportContent);
-    printWindow.document.close();
-    
-    setTimeout(() => { printWindow.print(); }, 600);
-}
 function saveTeamToHistory(teamName, totalScore) {
     const matchDate = document.getElementById('tmDate').value;
-    
-    // Find the specific team breakdown from our temporary memory
-    // We use the 'teamName' (e.g., "Team 1") as the key
     const currentBreakdown = teamBreakdowns[teamName];
     
     const entry = { 
@@ -1719,28 +1525,40 @@ function saveTeamToHistory(teamName, totalScore) {
         winner: `${teamName}: ${currentBreakdown ? currentBreakdown.names.join(', ') : ''}`, 
         date: matchDate, 
         detail: totalScore + ' pts',
-        // NEW: Save the full hole-by-hole data inside the history entry
         breakdown: currentBreakdown ? currentBreakdown.holes : null,
         playerNames: currentBreakdown ? currentBreakdown.names : []
     };
     
     pastComps.push(entry); 
-    saveData(); // This saves it to localStorage
+    saveData(); 
     renderPastComps();
     alert("Team Result Saved Permanently!");
 }
-function showGuide() {
-    document.getElementById('guideBox').style.display = 'block';
-}
 
-function hideGuide() {
-    document.getElementById('guideBox').style.display = 'none';
+function showGuide() { document.getElementById('guideBox').style.display = 'block'; }
+function hideGuide() { document.getElementById('guideBox').style.display = 'none'; }
+
+function renderSavedDoubles() {
+    if (!tempTeams || tempTeams.length === 0) return;
+
+    document.getElementById('doubles-scorecards').innerHTML = tempTeams.map((t, idx) => `
+        <div class="team-box">
+            <div class="item-row"><b>Team ${idx+1}</b></div>
+            <div class="item-row"><span>${t.p1.name}</span>
+               <input type="number" class="pts-input db-p1" data-id="${t.p1.id}" data-idx="${idx}" placeholder="Pts">
+            </div>
+            <div class="item-row"><span>${t.p2.name}</span>
+               <input type="number" class="pts-input db-p2" data-id="${t.p2.id}" data-idx="${idx}" placeholder="Pts">
+            </div>
+        </div>`).join('');
+
+    document.getElementById('db-step1').classList.add('hidden');
+    document.getElementById('db-step2').classList.remove('hidden');
 }
 </script>
-<!-- THE FULL GUIDE BOX -->
+
 <div id="guideBox" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:25px; border-radius:15px; z-index:9999; width:90%; max-height:85vh; overflow-y:auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-family: sans-serif; border: 1px solid #ccc; color: #333;">
     <button onclick="hideGuide()" style="float:right; background:#e74c3c; color:white; border:none; border-radius:20px; width:30px; height:30px; cursor:pointer; font-weight:bold;">X</button>
-    
     <h2 style="color:#2c3e50; margin-top:0;">⛳ User Guide</h2>
     <hr style="border: 0; height: 1px; background: #eee; margin-bottom: 20px;">
 
@@ -1766,47 +1584,6 @@ function hideGuide() {
 </div>
 
 <script>
-function colorLive(input) {
-    const val = parseInt(input.value);
-    if (!val) { input.style.color = '#333'; return; }
-    
-    // If strokes are high (7+), make it Red. If low (1-3), make it Green.
-    if (val >= 7) { input.style.color = '#e74c3c'; } 
-    else if (val <= 3) { input.style.color = '#27ae60'; } 
-    else { input.style.color = '#333'; }
-}
-    // THESE ARE THE MUSCLES THAT MAKE THE BUTTON WORK
-    function showGuide() {
-        document.getElementById('guideBox').style.display = 'block';
-    }
-
-    function hideGuide() {
-        document.getElementById('guideBox').style.display = 'none';
-    }
-function renderSavedDoubles() {
-    if (!tempTeams || tempTeams.length === 0) return;
-
-    // This draws the boxes exactly like they were
-    document.getElementById('doubles-scorecards').innerHTML = tempTeams.map((t, idx) => `
-        <div class="team-box">
-            <div class="item-row"><b>Team ${idx+1}</b></div>
-            <div class="item-row"><span>${t.p1.name}</span>
-                <input type="number" class="pts-input db-p1" data-id="${t.p1.id}" data-idx="${idx}" placeholder="Pts">
-            </div>
-            <div class="item-row"><span>${t.p2.name}</span>
-                <input type="number" class="pts-input db-p2" data-id="${t.p2.id}" data-idx="${idx}" placeholder="Pts">
-            </div>
-        </div>`).join('');
-
-    // This hides the player selection and shows the cards
-    document.getElementById('db-step1').classList.add('hidden');
-    document.getElementById('db-step2').classList.remove('hidden');
-}
-</script>
-<!-- ======================================================= -->
-<!-- HANDS-OFF HANDICAP EXTENSION CODE (WITH ONE-TIME LOCK)  -->
-<!-- ======================================================= -->
-<script>
 (function() {
     const originalViewDetail = window.viewDetail;
     
@@ -1817,21 +1594,20 @@ function renderSavedDoubles() {
         
         const lockButton = document.getElementById('btn-lock-round');
         if (lockButton) {
-            // Find if this event has already been locked previously
             const sampleRound = rounds.find(r => r.date === date && String(r.courseId) === String(courseId));
             
             if (sampleRound && sampleRound.isLocked) {
-                lockButton.innerHTML = "🔒 Round Locked & Finalized";
-                lockButton.style.backgroundColor = "#7f8c8d"; // Gray out the button
-                lockButton.disabled = true;
+               lockButton.innerHTML = "🔒 Round Locked & Finalized";
+               lockButton.style.backgroundColor = "#7f8c8d";
+               lockButton.disabled = true;
             } else {
-                lockButton.innerHTML = "🔒 Lock Round & Adjust Handicaps";
-                lockButton.style.backgroundColor = "#e67e22"; // Orange active button
-                lockButton.disabled = false;
+               lockButton.innerHTML = "🔒 Lock Round & Adjust Handicaps";
+               lockButton.style.backgroundColor = "#e67e22";
+               lockButton.disabled = false;
                 
-                lockButton.onclick = function() {
-                    calculateAndAdjustHandicaps(date, courseId);
-                };
+               lockButton.onclick = function() {
+                   calculateAndAdjustHandicaps(date, courseId);
+               };
             }
         }
     };
@@ -1843,7 +1619,6 @@ function renderSavedDoubles() {
             return alert("You need at least 2 players in this event to determine a winner and last place!");
         }
 
-        // Double check to make absolutely sure it hasn't been locked while open
         if (eventRounds[0].isLocked) {
             return alert("This event's handicaps have already been adjusted and locked!");
         }
@@ -1873,18 +1648,15 @@ function renderSavedDoubles() {
             message += `🐢 Last Place: ${lastPlayer.name}\n   Old HC: ${oldHc} ➔ New HC: ${lastPlayer.handicap}\n`;
         }
 
-        // SAFETY: Mark ALL rounds in this specific event as locked so it never runs again
         eventRounds.forEach(r => {
-            r.isLocked = true;
+           r.isLocked = true;
         });
 
         saveData();
-        if (typeof renderPlayers === "function") renderPlayers(); 
+        if (typeof renderAdmin === "function") renderAdmin(); 
         if (typeof renderDashboard === "function") renderDashboard();
         
         alert(message + "\nHandicaps updated and event locked successfully!");
-        
-        // Refresh detail view layout to visually gray out the button immediately
         window.viewDetail(date, courseId);
     }
 })();
