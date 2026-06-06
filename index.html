@@ -34,15 +34,116 @@
         .match-card { border: 1px solid #ddd; padding: 10px; margin: 10px 0; border-radius: 8px; border-left: 5px solid var(--accent); }
         .winner-row { background: #e8f5e9; font-weight: bold; border-radius: 4px; padding: 2px 5px; }
 
-        .score-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin: 10px 0; }
-        .hole-input { text-align: center; }
-        .hole-input label { font-size: 9px; display: block; color: #777; }
-        .hole-input input { padding: 4px; text-align: center; margin: 0; font-size: 12px; }
+/* Changed from a 6-column grid to a clean stack of scorecard rows */
+.score-grid { 
+    display: flex;
+    flex-direction: column;
+    gap: 6px; 
+    margin: 15px 0; 
+}
+
+/* Individual scorecard row matching a real physical card */
+.hole-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fdfdfd;
+    padding: 10px 14px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+/* Base style for text values in columns */
+.sc-label {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Hole Title */
+.sc-hole-num {
+    font-weight: bold;
+    min-width: 55px;
+    color: var(--primary);
+}
+
+/* Stroke Index - Blue Font */
+.sc-si-val {
+    color: #0056b3;
+    font-weight: bold;
+    min-width: 60px;
+}
+
+/* Hole Par */
+.sc-par-val {
+    color: #555;
+    min-width: 50px;
+}
+
+/* Score Inputs */
+.hole-row input {
+    width: 60px;
+    padding: 6px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    margin: 0;
+}
+
+/* Live Points Display - Green Font */
+.sc-pts-val {
+    color: #2e7d32;
+    font-weight: bold;
+    font-size: 15px;
+    min-width: 55px;
+    text-align: right;
+}
 
         .stats-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .stats-table th { text-align: left; background: #f8f8f8; padding: 8px; border-bottom: 2px solid #ddd; }
         .stats-table td { padding: 8px; border-bottom: 1px solid #eee; }
-    </style>
+   /* Turns your 6-column grid into a professional horizontal scorecard row */
+#round-scores {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 15px 0;
+}
+
+/* Formats each hole's box to look like a physical scorecard line */
+#round-scores .hole-input {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fdfdfd;
+    padding: 10px 14px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    text-align: left;
+}
+
+/* Makes the Hole Number Bold */
+#round-scores .hole-input label {
+    font-size: 14px;
+    font-weight: bold;
+    color: #1b5e20; /* Your primary green */
+    margin: 0;
+}
+
+/* Styles the input boxes neatly on the right side */
+#round-scores .hole-input input {
+    width: 70px;
+    padding: 6px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    margin: 0;
+}
+ </style>
 </head>
 <body>
 
@@ -79,8 +180,8 @@
             <h3 id="comp-title">Enter Scorecard</h3>
             <input type="hidden" id="editRoundId">
             <label>Date</label><input type="date" id="rDate">
-            <label>Course</label><select id="rCourse"></select>
-            <label>Player</label><select id="rPlayer"></select>
+<label>Course</label><select id="rCourse" onchange="updateLiveScorecard()"></select>
+<label>Player</label><select id="rPlayer" onchange="updateLiveScorecard()"></select>
             <div class="score-grid" id="round-scores"></div>
             <button class="btn" id="saveBtn" onclick="saveRound()">Save Result</button>
             <button class="btn-del" id="cancelEditBtn" style="display:none;" onclick="cancelEdit()">Cancel</button>
@@ -208,6 +309,7 @@
         if(id === 'tab-comp') {
             document.getElementById('rCourse').innerHTML = courses.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
             document.getElementById('rPlayer').innerHTML = players.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+updateLiveScorecard(); } 
         }
     }
 
@@ -341,9 +443,89 @@
         const f = rounds.filter(r=>r.date===t).sort((a,b)=>b.points-a.points);
         document.getElementById('leaderboard-display').innerHTML = f.map(r=>`<div class="item-row"><span>${r.playerName}</span><b>${r.points} pts</b></div>`).join('');
     }
-    function setupInputGrids() { ['round-scores', 'setup-pars', 'setup-si'].forEach(g => { const el = document.getElementById(g); for(let i=1; i<=18; i++) el.innerHTML += `<div class="hole-input"><label>${i}</label><input type="number" class="${g}-val"></div>`; }); }
-    function factoryReset() { if(confirm("Wipe everything?")) { localStorage.clear(); location.reload(); }}
-    window.onload = () => { loadData(); setupInputGrids(); showTab('tab-dash'); };
+// 1. Setup the admin panels (Leaves 'setup-pars' and 'setup-si' as simple grids)
+    function setupInputGrids() { 
+        ['setup-pars', 'setup-si'].forEach(g => { 
+            const el = document.getElementById(g);
+            el.innerHTML = ''; // Clears old elements
+            for(let i=1; i<=18; i++) {
+                el.innerHTML += `<div class="hole-input"><label>${i}</label><input type="number" class="${g}-val"></div>`;
+            }
+        }); 
+    }
+
+    // 2. This builds your gorgeous new horizontal scorecard layout
+    function updateLiveScorecard() {
+        const container = document.getElementById('round-scores');
+        container.innerHTML = ''; // Clear old layout
+
+        const cId = document.getElementById('rCourse').value;
+        const pId = document.getElementById('rPlayer').value;
+
+        // Safety check to ensure we have data loaded
+        if (!cId || !pId || courses.length === 0 || players.length === 0) {
+            container.innerHTML = '<p style="text-align:center;color:#777;padding:10px;">Please register a course and player in Setup first.</p>';
+            return;
+        }
+
+        const crs = courses.find(c => c.id == cId);
+        const plr = players.find(p => p.id == pId);
+
+        // This loop draws 18 beautiful rows, fetching live Par and SI values
+        for(let i = 1; i <= 18; i++) {
+            const par = crs ? parseInt(crs.pars[i-1]) || 4 : 4;
+            const si = crs ? parseInt(crs.si[i-1]) || i : i;
+            const hc = plr ? parseInt(plr.handicap) || 0 : 0;
+
+            container.innerHTML += `
+                <div class="hole-row">
+                    <span class="sc-label sc-hole-num">Hole ${i}</span>
+                    <span class="sc-label sc-par-val">Par ${par}</span>
+                    <span class="sc-label sc-si-val">SI ${si}</span>
+                    <input type="number" 
+                           class="round-scores-val" 
+                           id="hole-score-${i}"
+                           placeholder="-"
+                           min="1" 
+                           oninput="liveCalculateHole(${i}, ${par}, ${si}, ${hc})">
+                    <span class="sc-pts-val" id="hole-pts-${i}">0 pts</span>
+                </div>
+            `;
+        }
+    }
+
+    // 3. This watches your inputs and updates the green font points instantly
+    function liveCalculateHole(holeNum, par, si, hc) {
+        const inputVal = document.getElementById(`hole-score-${holeNum}`).value;
+        const ptsElement = document.getElementById(`hole-pts-${holeNum}`);
+        const s = parseInt(inputVal) || 0;
+
+        // If field is empty or 0, keep display clean
+        if (s <= 0) {
+            ptsElement.innerText = "0 pts";
+            return;
+        }
+
+        // Apply your exact calculation math
+        const allow = Math.floor(hc / 18) + (hc % 18 >= si ? 1 : 0);
+        const points = Math.max(0, par - (s - allow) + 2);
+
+        ptsElement.innerText = `${points} pts`;
+    }
+
+    // 4. Keeps your original system functions intact
+    function factoryReset() { 
+        if(confirm("Wipe everything?")) { 
+            localStorage.clear(); 
+            location.reload(); 
+        }
+    }
+    
+    window.onload = () => { 
+        loadData(); 
+        setupInputGrids(); 
+        showTab('tab-dash'); 
+    };
 </script>
 </body>
 </html>
