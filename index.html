@@ -113,6 +113,100 @@
             .hidden { display: none !important; }
             #dash-detail.hidden { display: block !important; }
         }
+/* --- GAMEBOOK 6-COLUMN COMPACT MATRIX STYLES --- */
+.gb-matrix-container {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 15px 0;
+}
+.gb-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: center;
+    table-layout: fixed;
+    margin-bottom: 20px;
+}
+.gb-table:last-child {
+    margin-bottom: 5px;
+}
+.gb-header-row th {
+    background: #0d8a43;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 6px 2px;
+}
+.gb-header-row th:first-child {
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
+.gb-header-row th:last-child {
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+.gb-row td {
+    padding: 8px 2px;
+    font-size: 14px;
+    font-weight: 500;
+    height: 38px;
+    vertical-align: middle;
+}
+.gb-label {
+    text-align: left;
+    font-weight: bold;
+    color: #333333;
+    padding-left: 4px !important;
+    width: 18%; /* Sets standard text lane width */
+}
+.gb-hcp-text {
+    color: #1d70b8; /* Vivid Blue HCP Font */
+    font-weight: 600;
+}
+.gb-par-text {
+    color: #555555;
+}
+.gb-score-input {
+    width: 85%;
+    max-width: 36px;
+    height: 32px;
+    border: 1px solid #d2d2d2;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    color: #333333;
+    padding: 0;
+    outline: none;
+    background: #fafafa;
+    transition: all 0.1s ease;
+}
+.gb-score-input:focus {
+    border-color: #0d8a43;
+    background: #ffffff;
+    box-shadow: 0 0 4px rgba(13, 138, 67, 0.3);
+}
+.gb-pts-text {
+    color: #0d8a43; /* Green Live Stableford Points Font */
+    font-weight: bold;
+    font-size: 15px;
+}
+.gb-summary-banner {
+    display: flex;
+    justify-content: space-around;
+    background: #f7f7f7;
+    padding: 10px;
+    border-radius: 10px;
+    margin-top: 10px;
+    font-weight: bold;
+    font-size: 14px;
+    color: #222;
+}
+.gb-sum-item span {
+    color: #0d8a43;
+}
     </style>
 </head>
 <body onload="init()">
@@ -905,43 +999,117 @@ function updateScorecardInfo() {
     const playerId = document.getElementById('rPlayer').value;
     const course = courses.find(c => c.id == courseId);
 
-    if (!course) return;
+    const container = document.getElementById('round-scores');
+    if (!course) {
+        container.innerHTML = '<p style="text-align:center;color:#777;padding:15px;">Select course and player to display scorecard matrix.</p>';
+        return;
+    }
 
     const pars = course.pars || [];
     const si = course.si || [];
-    const yards = course.yards || [];
-
-    // Update metadata table rows
-    document.getElementById('par-row').innerHTML = '<td><b>Par</b></td>' + pars.map(p => `<td>${p || '-'}</td>`).join('');
-    document.getElementById('yards-row').innerHTML = '<td><b>Yds</b></td>' + yards.map(y => `<td>${y || '-'}</td>`).join('');
-    document.getElementById('si-row').innerHTML = '<td><b>SI</b></td>' + si.map(s => `<td>${s || '-'}</td>`).join('');
-
-    // Generate horizontal layout rows dynamically
-    const container = document.getElementById('round-scores');
-    container.innerHTML = '';
-
     const player = players.find(p => p.id == playerId);
-    const hc = player ? parseInt(player.handicap) || 0 : 0;
+    const hc = player ? Math.round(parseFloat(player.handicap)) || 0 : 0;
+
+    let html = `<div class="gb-matrix-container">`;
+
+    // Define the three 6-hole splits
+    const sections = [
+        { label: "Holes 1 - 6", holes: [1, 2, 3, 4, 5, 6] },
+        { label: "Holes 7 - 12", holes: [7, 8, 9, 10, 11, 12] },
+        { label: "Holes 13 - 18", holes: [13, 14, 15, 16, 17, 18] }
+    ];
+
+    sections.forEach(sec => {
+        html += `
+        <table class="gb-table">
+            <tr class="gb-header-row">
+                <th class="gb-label" style="color: white;">${sec.label}</th>
+                ${sec.holes.map(h => `<th>${h}</th>`).join('')}
+            </tr>
+            <tr class="gb-row">
+                <td class="gb-label">HCP</td>
+                ${sec.holes.map(h => `<td class="gb-hcp-text">${si[h-1] || '-'}</td>`).join('')}
+            </tr>
+            <tr class="gb-row">
+                <td class="gb-label">Par</td>
+                ${sec.holes.map(h => `<td class="gb-par-text">${pars[h-1] || '4'}</td>`).join('')}
+            </tr>
+            <tr class="gb-row">
+                <td class="gb-label">Score</td>
+                ${sec.holes.map(h => `
+                    <td>
+                        <input type="number" pattern="[0-9]*" inputmode="numeric" class="gb-score-input" id="hole-score-${h}" 
+                               oninput="processGbLiveScore(${h}, ${pars[h-1]||4}, ${si[h-1]||h}, ${hc})">
+                    </td>
+                `).join('')}
+            </tr>
+            <tr class="gb-row">
+                <td class="gb-label">Net Pts</td>
+                ${sec.holes.map(h => `<td class="gb-pts-text" id="hole-pts-${h}">-</td>`).join('')}
+            </tr>
+        </table>`;
+    });
+
+    // Bottom running summary banner matching GameBook parameters
+    html += `
+        <div class="gb-summary-banner">
+            <div class="gb-sum-item">Total Par: <span id="gb-tot-par-val">-</span></div>
+            <div class="gb-sum-item">Gross Strokes: <span id="gb-tot-stroke-val">-</span></div>
+            <div class="gb-sum-item">Total Points: <span id="gb-tot-pts-val">0</span></div>
+        </div>
+    </div>`;
+
+    container.innerHTML = html;
+    
+    // Calculate course static par total
+    let totalCoursePar = pars.reduce((a, b) => (parseInt(a) || 0) + (parseInt(b) || 0), 0);
+    document.getElementById('gb-tot-par-val').innerText = totalCoursePar || 72;
+    refreshRunningTotals();
+}
+function processGbLiveScore(holeNum, par, si, hc) {
+    const inputField = document.getElementById(`hole-score-${holeNum}`);
+    const val = parseInt(inputField.value) || 0;
+    const ptsDisplay = document.getElementById(`hole-pts-${holeNum}`);
+
+    if (val <= 0) {
+        ptsDisplay.innerText = "-";
+    } else {
+        const allowance = Math.floor(hc / 18) + (hc % 18 >= si ? 1 : 0);
+        const netScore = val - allowance;
+        const points = Math.max(0, par - netScore + 2);
+        ptsDisplay.innerText = points;
+    }
+
+    refreshRunningTotals();
+
+    // --- LIGHTNING-FAST 6-COLUMN AUTO-HOP ENGINE ---
+    if (inputField.value.length >= 1) {
+        const nextHole = holeNum + 1;
+        const nextInput = document.getElementById(`hole-score-${nextHole}`);
+        if (nextInput) {
+            nextInput.focus();
+            nextInput.select();
+        }
+    }
+}
+
+function refreshRunningTotals() {
+    let totalStrokes = 0;
+    let totalPoints = 0;
 
     for (let i = 1; i <= 18; i++) {
-        const holePar = parseInt(pars[i - 1]) || 4;
-        const holeSi = parseInt(si[i - 1]) || i;
+        const scoreVal = parseInt(document.getElementById(`hole-score-${i}`).value) || 0;
+        const ptsVal = parseInt(document.getElementById(`hole-pts-${i}`).innerText) || 0;
+        
+        totalStrokes += scoreVal;
+        totalPoints += ptsVal;
+    }
 
-        container.innerHTML += `
-            <div class="hole-row">
-                <span class="sc-hole-num">Hole ${i}</span>
-                <span class="sc-par-val">Par ${holePar}</span>
-                <span class="sc-si-val">SI ${holeSi}</span>
-                <input type="number" 
-                       inputmode="numeric"
-                       class="round-scores-val" 
-                       id="hole-score-${i}"
-                       placeholder="-"
-                       min="1" 
-                       oninput="calculateLiveHolePoints(${i}, ${holePar}, ${holeSi}, ${hc}); moveToNext(this); colorLive(this)">
-                <span class="sc-pts-val" id="hole-pts-${i}">0 pts</span>
-            </div>
-        `;
+    if (document.getElementById('gb-tot-stroke-val')) {
+        document.getElementById('gb-tot-stroke-val').innerText = totalStrokes > 0 ? totalStrokes : '-';
+    }
+    if (document.getElementById('gb-tot-pts-val')) {
+        document.getElementById('gb-tot-pts-val').innerText = totalPoints;
     }
 }
 function calculateLiveHolePoints(holeNum, par, si, hc) {
