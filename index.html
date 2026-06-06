@@ -219,7 +219,7 @@
                 <h3>Recent Rounds</h3>
                 <select id="dashSeason" onchange="renderDashboard()"></select>
                 <div id="dash-list"></div>
-<button class="btn-share" onclick="window.print()" style="margin-top:10px; background: #000;">
+<button class="btn-share" onclick="exportMasterReport()" style="margin-top:10px; background: #000;">
     Print Master Report (All Events)
 </button>
             </div>
@@ -1165,7 +1165,44 @@ function calculateLiveHolePoints(holeNum, par, si, hc) {
                 <span>${c.count} Players ></span>
             </div>`).join('');
     }
+function exportMasterReport() {
+    // 1. Check if we have any round data saved in history
+    if (!rounds || rounds.length === 0) {
+        alert("No tournament records found to generate a master report.");
+        return;
+    }
 
+    // 2. Make sure the detail box screen is forced visible
+    document.getElementById('dash-main-view').classList.add('hidden');
+    document.getElementById('dash-detail').classList.remove('hidden');
+
+    // 3. Set up the header details for the master printout
+    document.getElementById('detail-title').innerText = "Master Championship Standings";
+    document.getElementById('detail-date').innerText = "All Recorded Season Events";
+    document.getElementById('report-club-name').innerText = club.name || "Golf Pro Manager";
+
+    // 4. Sort every round in history by highest points score
+    const masterSorted = [...rounds].sort((a, b) => (b.points || 0) - (a.points || 0));
+
+    // 5. Build and insert the text rows directly into your table view
+    document.getElementById('detail-results').innerHTML = masterSorted.map((r, i) => {
+        let awards = "";
+        if (r.longDrive) awards += "🚀 ";
+        if (r.nearPin) awards += "🎯 ";
+        
+        return `<tr>
+            <td>${i + 1}</td>
+            <td><b>${r.playerName}</b><br><small style="color:#666;">${r.courseName} (${formatDateDisplay(r.date)})</small></td>
+            <td style="color: ${getScoreColor(r.points)}; font-weight: bold;">${r.points || 0}</td>
+            <td style="font-size:1.2em;">${awards || '-'}</td>
+        </tr>`;
+    }).join('');
+
+    // 6. Give the browser a brief split-second to render the data, then open the print window
+    setTimeout(() => {
+        window.print();
+    }, 300);
+}
 function viewDetail(date, courseId) {
     const filtered = rounds.filter(r => r.date === date && String(r.courseId) === String(courseId)).sort((a,b) => {
     if (b.points !== a.points) return b.points - a.points;
