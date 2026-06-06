@@ -33,7 +33,27 @@
 
 
 
+@media print {
+    /* 1. Force the hidden details and report container to show on paper */
+    html, body, #dash-detail, #report-content, .card {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        height: auto !important;
+    }
 
+    /* 2. Hide all the non-printable clutter like tabs and menu buttons */
+    nav, .navbar, .tab-header, button, .no-print, .btn-outline, .btn-share, #btn-lock-round {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* 3. Stretch the tables cleanly to fill the paper page */
+    .report-table, table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+}
     <style>
         :root { --primary: #1b5e20; --accent: #ffd700; --danger: #d32f2f; --light: #f4f4f4; --success: #2e7d32; --info: #0288d1; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #e0e0e0; color: #333; }
