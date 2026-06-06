@@ -1048,7 +1048,7 @@ function updateScorecardInfo() {
                 ${sec.holes.map(h => `
                     <td>
                         <input type="number" pattern="[0-9]*" inputmode="numeric" class="gb-score-input" id="hole-score-${h}" 
-                               oninput="processGbLiveScore(${h}, ${pars[h-1]||4}, ${si[h-1]||h})">
+                               oninput="processGbLiveScore(${h}, ${pars[h-1]||4}, ${si[h-1]||h}, ${hc})">
                     </td>
                 `).join('')}
             </tr>
