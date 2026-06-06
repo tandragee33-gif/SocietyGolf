@@ -1048,7 +1048,7 @@ function updateScorecardInfo() {
                 ${sec.holes.map(h => `
                     <td>
                         <input type="number" pattern="[0-9]*" inputmode="numeric" class="gb-score-input" id="hole-score-${h}" 
-                               oninput="processGbLiveScore(${h}, ${pars[h-1]||4}, ${si[h-1]||h}, ${hc})">
+                               oninput="processGbLiveScore(${h}, ${pars[h-1]||4}, ${si[h-1]||h})">
                     </td>
                 `).join('')}
             </tr>
@@ -1075,20 +1075,51 @@ function updateScorecardInfo() {
     }
     refreshRunningTotals();
 }
-function processGbLiveScore(holeNum, par, si, hc) {
+function processGbLiveScore(holeNum, par, si) {
     const inputField = document.getElementById(`hole-score-${holeNum}`);
     const val = parseInt(inputField.value) || 0;
     const ptsDisplay = document.getElementById(`hole-pts-${holeNum}`);
 
+    // Automatically find the current selected player's live handicap
+    const playerId = document.getElementById('rPlayer').value;
+    const player = players.find(p => p.id == playerId);
+    const hc = player ? Math.round(parseFloat(player.handicap)) || 0 : 0;
+
     if (val <= 0) {
         ptsDisplay.innerText = "-";
     } else {
+        // Precise World Handicap System (WHS) Stableford Formula
         const allowance = Math.floor(hc / 18) + (hc % 18 >= si ? 1 : 0);
         const netScore = val - allowance;
         const points = Math.max(0, par - netScore + 2);
         ptsDisplay.innerText = points;
     }
 
+    refreshRunningTotals();
+
+    // --- INSTANT AUTO-HOP ---
+    if (inputField.value.length >= 1) {
+        const nextHole = holeNum + 1;
+        const nextInput = document.getElementById(`hole-score-${nextHole}`);
+        if (nextInput) {
+            nextInput.focus();
+            nextInput.select();
+        }
+    }
+}
+
+    refreshRunningTotals();
+
+    // --- INSTANT AUTO-HOP ---
+    if (inputField.value.length >= 1) {
+        const nextHole = holeNum + 1;
+        const nextInput = document.getElementById(`hole-score-${nextHole}`);
+        if (nextInput) {
+            nextInput.focus();
+            nextInput.select();
+        }
+    }
+}
     refreshRunningTotals();
 
     // --- LIGHTNING-FAST 6-COLUMN AUTO-HOP ENGINE ---
