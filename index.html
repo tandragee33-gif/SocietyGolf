@@ -1076,6 +1076,7 @@ function updateScorecardInfo() {
     refreshRunningTotals();
 }
 function processGbLiveScore(holeNum, par, si, hc) {
+hc = Math.round(parseFloat(document.getElementById('rPlayer').value ? players.find(p => p.id == document.getElementById('rPlayer').value).handicap : 0)) || 0;
     const inputField = document.getElementById(`hole-score-${holeNum}`);
     const val = parseInt(inputField.value) || 0;
     const ptsDisplay = document.getElementById(`hole-pts-${holeNum}`);
