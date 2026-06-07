@@ -1185,7 +1185,7 @@ function populateReportDates() {
     });
 }
 function exportMasterReport() {
-    // 1. Get the date chosen by the user
+    // 1. Get the date chosen by the user from the filter select dropdown box
     const selectedDate = document.getElementById('report-date-select') ? 
                          document.getElementById('report-date-select').value : 'all';
                          
@@ -1194,7 +1194,7 @@ function exportMasterReport() {
         return;
     }
 
-    // Convert date layout safely if filtering
+    // Safely parse out input formatting variations
     let targetIsoDate = selectedDate;
     let displayDate = selectedDate;
     if (selectedDate !== 'all' && selectedDate.includes('/')) {
@@ -1204,13 +1204,13 @@ function exportMasterReport() {
         displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
 
-    // Filter Individual Rounds
+    // Gather rounds matching selected date filters
     let dailyRounds = [...rounds];
     if (selectedDate !== 'all') {
         dailyRounds = rounds.filter(r => r.date === targetIsoDate);
     }
 
-    // Filter Saved Competitions (Teams and Doubles from pastComps)
+    // Gather team competitions matching selected date filters
     let dailyComps = [...pastComps];
     if (selectedDate !== 'all') {
         dailyComps = pastComps.filter(c => c.date === displayDate);
@@ -1220,7 +1220,7 @@ function exportMasterReport() {
     const clubName = (club && club.name) ? club.name : "Punters Golf Society";
     const clubLogo = (club && club.logo) ? club.logo : "";
 
-    // 2. Start constructing the print frame
+    // 2. Begin constructing print document shell layout
     let printHTML = `
         <div class="master-print-container">
             <div class="report-header">
@@ -1231,8 +1231,9 @@ function exportMasterReport() {
             </div>
     `;
 
-    // --- SECTION 1: INDIVIDUAL LEADERBOARD ---
+    // --- SECTION 1: INDIVIDUAL LEADERBOARD (HIGHEST TO LOWEST POINTS) ---
     if (dailyRounds.length > 0) {
+        // Sorts players purely from absolute highest points to lowest points
         dailyRounds.sort((a, b) => {
             if (b.points !== a.points) return b.points - a.points;
             return typeof getTieBreaker === 'function' ? getTieBreaker(b.pointsArray) - getTieBreaker(a.pointsArray) : 0;
@@ -1249,7 +1250,7 @@ function exportMasterReport() {
                         if (r.nearPin) awards += "NP ";
                         return `<tr>
                             <td style="text-align:center; font-weight:bold; width: 15%;">${i + 1}</td>
-                            <td><b>${r.playerName || 'Unknown'}</b></td>
+                            <td>${r.playerName || 'Unknown'}</td>
                             <td style="text-align:center; font-weight:bold; color:#2e7d32; width: 20%;">${r.points || 0}</td>
                             <td style="color:#e67e22; font-weight:bold; text-align:center; width: 20%;">${awards || '-'}</td>
                         </tr>`;
@@ -1296,7 +1297,6 @@ function exportMasterReport() {
     }
 
     // --- SECTION 4: DYNAMIC CHAMPIONS SCORECARD ---
-    // Reads directly out of the permanent background data saved inside the Team history entry
     const winningTeamWithBreakdown = teamComps.find(t => t.breakdown && t.breakdown.length > 0);
     
     if (winningTeamWithBreakdown) {
@@ -1319,7 +1319,6 @@ function exportMasterReport() {
                         <tbody>
             `;
 
-            // Draw each individual player's row dynamically
             playerNames.forEach((name, pIdx) => {
                 let playerTotal = 0;
                 printHTML += `
@@ -1335,7 +1334,6 @@ function exportMasterReport() {
                 `;
             });
 
-            // Draw the collective team score row directly matching what was produced on screen
             let globalCombinedScore = 0;
             printHTML += `
                 <tr style="background:#e8f5e9; font-weight:bold;">
@@ -1360,7 +1358,7 @@ function exportMasterReport() {
 
     printHTML += `</div>`;
 
-    // 3. Open full display print layout
+    // 3. Open pop-up view to isolate and print clearly
     const printWindow = window.open('', '_blank', 'width=1020,height=900');
     printWindow.document.write(`
         <html>
