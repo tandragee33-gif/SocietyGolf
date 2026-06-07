@@ -370,26 +370,7 @@ color: white; font-size: 10px; font-weight: bold; cursor: pointer; text-transfor
                     <button class="btn-del" onclick="resetDoublesSelection()">Clear All</button>
                 </div>
             </div>
-<!-- MASTER REPORT (ALL EVENTS) -->
-<div id="master-report" class="hidden card">
-    <div class="no-print">
-        <button class="btn-outline" onclick="closeMasterReport()">← Back</button>
-        <button class="btn-share" onclick="window.print()">Print / PDF</button>
-        <hr>
-    </div>
 
-    <h2>Master Event Report</h2>
-
-    <label>Start Date:</label>
-    <input type="date" id="mrStart">
-
-    <label>End Date:</label>
-    <input type="date" id="mrEnd">
-
-    <button class="btn" onclick="generateMasterReport()">Generate Report</button>
-
-    <div id="mr-output" style="margin-top:20px;"></div>
-</div>
             <div id="db-step2" class="hidden">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <p style="font-size:12px;">2. Scoring (Auto-populated if history exists):</p>
@@ -563,6 +544,32 @@ color: white; font-size: 10px; font-weight: bold; cursor: pointer; text-transfor
         </div>
         <button class="btn-del" style="width:100%" onclick="factoryReset()">Master Data Wipe</button>
     </div>
+</div>
+<div id="admin-courses"></div>
+        </div>
+        <button class="btn-del" style="width:100%" onclick="factoryReset()">Master Data Wipe</button>
+    </div>
+</div>
+
+<!-- MASTER REPORT (ALL EVENTS) -->
+<div id="master-report" class="hidden card">
+    <div class="no-print">
+        <button class="btn-outline" onclick="closeMasterReport()">← Back</button>
+        <button class="btn-share" onclick="window.print()">Print / PDF</button>
+        <hr>
+    </div>
+
+    <h2>Master Event Report</h2>
+
+    <label>Start Date:</label>
+    <input type="date" id="mrStart">
+
+    <label>End Date:</label>
+    <input type="date" id="mrEnd">
+
+    <button class="btn" onclick="generateMasterReport()">Generate Report</button>
+
+    <div id="mr-output" style="margin-top:20px;"></div>
 </div>
 
 <script>
