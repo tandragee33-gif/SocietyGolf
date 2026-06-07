@@ -85,42 +85,80 @@
         .report-table td { border: 1px solid #ddd; padding: 8px; }
 
 @media print {
-    /* 1. Force the browser to render your graphics and green headers in full color */
+    /* Set page setting rules */
+    @page {
+        size: portrait;
+        margin: 15mm 10mm 15mm 10mm;
+    }
+
     html, body {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         background: #ffffff !important;
-        font-family: Arial, sans-serif !important;
+        font-family: 'Helvetica Neue', Arial, sans-serif !important;
+        font-size: 13px !important;
     }
 
-    /* 2. Wrap a solid, clean grey border frame around whichever tab is currently open */
-    .tab-content:not(.hidden), .card {
+    /* Wrap a premium solid grey border completely around the entire document page container */
+    #dash-detail {
         display: block !important;
         visibility: visible !important;
-        border: 2px solid #777777 !important; /* Thick grey border frame */
-        border-radius: 8px !important;
-        padding: 25px !important;
-        margin: 0 auto !important;
         width: 100% !important;
+        margin: 0 auto !important;
+        padding: 25px !important;
+        border: 2px solid #bbb !important; /* Elegant grey border frame */
+        border-radius: 8px !important;
+        box-shadow: none !important;
         box-sizing: border-box !important;
     }
 
-    /* 3. Keep your custom club logo centered and clearly visible at the top */
-    img, .logo, .report-logo, #report-logo-img {
+    /* Keep club logo perfectly centered at the very top */
+    #report-logo-img, .report-logo {
         display: block !important;
-        max-height: 80px !important;
-        margin: 0 auto 15px auto !important;
+        max-height: 75px !important;
+        margin: 0 auto 10px auto !important;
     }
 
-    /* 4. Hide only the screen clutter like navigation bars and your print button */
-    nav, .navbar, .tab-header, .no-print, button, .btn-share, .btn-outline {
+    .print-section-title {
+        color: #1b5e20 !important;
+        font-size: 14px !important;
+        font-weight: bold !important;
+        border-bottom: 2px solid #2e7d32 !important;
+        margin: 20px 0 8px 0 !important;
+        padding-bottom: 3px !important;
+    }
+
+    /* Clean up data tables to look completely uniform and tight */
+    .report-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin-bottom: 10px !important;
+    }
+    .report-table th {
+        background-color: #2e7d32 !important; /* Premium golf green rows */
+        color: white !important;
+        padding: 6px 8px !important;
+        font-weight: bold !important;
+        border: 1px solid #ddd !important;
+        font-size: 12px !important;
+    }
+    .report-table td {
+        padding: 6px 8px !important;
+        border-bottom: 1px solid #eee !important;
+        border-left: 1px solid #eee !important;
+        border-right: 1px solid #eee !important;
+    }
+
+    /* Format scorecard table horizontally so it fits seamlessly on one page */
+    .layout-scorecard th, .layout-scorecard td {
+        padding: 4px !important;
+        text-align: center !important;
+        font-size: 11px !important;
+    }
+
+    /* Hide background screen tabs, buttons, and navigation options */
+    nav, .navbar, .tab-header, button, .no-print, .btn-share, .btn-outline, select, label, #dash-main-view {
         display: none !important;
-    }
-
-    /* 5. Keep all data grids, match listings, and bracket tables completely visible */
-    table, th, td, div {
-        visibility: visible !important;
-        opacity: 1 !important;
     }
 }
 /* --- GAMEBOOK 6-COLUMN COMPACT MATRIX STYLES --- */
@@ -1223,15 +1261,123 @@ function populateReportDates() {
     });
 }
 function exportMasterReport() {
-    // 1. Set up the header texts dynamically based on the dropdown selection
-    const selectedDate = document.getElementById('report-date-select').value;
-    const displayDate = typeof formatDateDisplay === 'function' ? formatDateDisplay(selectedDate) : selectedDate;
-    
-    document.getElementById('detail-title').innerText = "Tournament Standings";
-    document.getElementById('detail-date').innerText = selectedDate === "all" ? "All Recorded Season Events" : `Scores for ${displayDate}`;
-    document.getElementById('report-club-name').innerText = (typeof club !== 'undefined' && club.name) ? club.name : "Golf Pro Manager";
+    if (!rounds || rounds.length === 0) {
+        alert("No tournament records found to generate a report.");
+        return;
+    }
 
-    // 2. Safely load your logo
+    const selectedDate = document.getElementById('report-date-select').value;
+    let reportSubtitle = "All Recorded Season Events";
+    let htmlContent = "";
+
+    // Filter rounds by date
+    let filteredRounds = [...rounds];
+    if (selectedDate !== "all") {
+        filteredRounds = rounds.filter(r => r.date === selectedDate);
+        const displayDate = typeof formatDateDisplay === 'function' ? formatDateDisplay(selectedDate) : selectedDate;
+        reportSubtitle = `Tournament Summary — ${displayDate}`;
+    }
+
+    // --- 1. INDIVIDUAL LEADERBOARD ---
+    if (filteredRounds.length > 0) {
+        const sortedRounds = filteredRounds.sort((a, b) => (b.points || 0) - (a.points || 0));
+        htmlContent += `
+            <h4 class="print-section-title">🏆 INDIVIDUAL LEADERBOARD</h4>
+            <table class="report-table">
+                <thead><tr><th>Pos</th><th>Player Name</th><th>Points</th><th>Awards</th></tr></thead>
+                <tbody>
+                    ${sortedRounds.map((r, i) => {
+                        let awards = "";
+                        if (r.longDrive) awards += "🚀 LD ";
+                        if (r.nearPin) awards += "🎯 NP ";
+                        return `<tr>
+                            <td style="text-align:center; font-weight:bold;">${i + 1}</td>
+                            <td><b>${r.playerName || 'Unknown'}</b></td>
+                            <td style="text-align:center; font-weight:bold; color:#2e7d32;">${r.points || 0}</td>
+                            <td style="color:#e67e22; font-weight:bold; text-align:center;">${awards || '-'}</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    // --- 2. TEAM EVENT RESULTS ---
+    if (typeof teams !== 'undefined' && teams.length > 0) {
+        let displayTeams = [...teams];
+        if (selectedDate !== "all") displayTeams = teams.filter(t => t.date === selectedDate);
+        if (displayTeams.length > 0) {
+            htmlContent += `
+                <h4 class="print-section-title" style="margin-top:25px;">👥 TEAM EVENT RESULTS</h4>
+                <table class="report-table">
+                    <thead><tr><th>Position</th><th>Winner/Team Members</th><th>Result</th></tr></thead>
+                    <tbody>
+                        ${displayTeams.map((t, i) => `<tr>
+                            <td style="font-weight:bold; color:#e67e22;">${i === 0 ? 'WINNER' : i + 1}</td>
+                            <td><b>${t.name || t.players || 'Team'}</b></td>
+                            <td style="text-align:center; font-weight:bold;">${t.score || t.points || '-'} pts</td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+    }
+
+    // --- 3. DOUBLES COMBINED RESULTS ---
+    if (typeof doubles !== 'undefined' && doubles.length > 0) {
+        let displayDoubles = [...doubles];
+        if (selectedDate !== "all") displayDoubles = doubles.filter(d => d.date === selectedDate);
+        if (displayDoubles.length > 0) {
+            htmlContent += `
+                <h4 class="print-section-title" style="margin-top:25px;">🤝 DOUBLES COMBINED RESULTS</h4>
+                <table class="report-table">
+                    <thead><tr><th>Position</th><th>Winner/Team Members</th><th>Result</th></tr></thead>
+                    <tbody>
+                        ${displayDoubles.map((d, i) => `<tr>
+                            <td style="font-weight:bold; color:#e67e22;">${i === 0 ? 'WINNER' : i + 1}</td>
+                            <td><b>${d.players || d.name}</b></td>
+                            <td style="text-align:center; font-weight:bold;">${d.score || d.points || '-'} pts</td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+    }
+
+    // --- 4. CHAMPIONS SCORECARD TABLE ---
+    if (typeof teams !== 'undefined' && teams.length > 0) {
+        htmlContent += `
+            <h4 class="print-section-title" style="margin-top:25px;">📊 CHAMPIONS SCORECARD: TEAM 4</h4>
+            <table class="report-table layout-scorecard">
+                <thead>
+                    <tr><th>HOLE</th><th>PROC</th><th>BONGO</th><th>TIGHT</th><th>SPROCKET</th><th>TOTAL</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Hole 1</td><td>2</td><td>0</td><td>2</td><td>3</td><td style="font-weight:bold;">5</td></tr>
+                    <tr><td>Hole 2</td><td>0</td><td>2</td><td>2</td><td>2</td><td style="font-weight:bold;">4</td></tr>
+                    <tr><td>Hole 3</td><td>2</td><td>2</td><td>2</td><td>2</td><td style="font-weight:bold;">4</td></tr>
+                    <tr><td>Hole 4</td><td>2</td><td>2</td><td>3</td><td>2</td><td style="font-weight:bold;">5</td></tr>
+                    <tr><td>Hole 5</td><td>0</td><td>1</td><td>3</td><td>2</td><td style="font-weight:bold;">5</td></tr>
+                    <tr><td>Hole 6</td><td>0</td><td>2</td><td>3</td><td>2</td><td style="font-weight:bold;">5</td></tr>
+                    <tr><td>Hole 7</td><td>0</td><td>2</td><td>3</td><td>1</td><td style="font-weight:bold;">5</td></tr>
+                    <tr><td>Hole 8</td><td>2</td><td>2</td><td>3</td><td>3</td><td style="font-weight:bold;">6</td></tr>
+                    <tr><td>Hole 9*</td><td>2</td><td>3</td><td>1</td><td>2</td><td style="font-weight:bold; background:#fff3e0;">8</td></tr>
+                    <tr><td>Hole 10</td><td>0</td><td>2</td><td>2</td><td>1</td><td style="font-weight:bold;">4</td></tr>
+                    <tr><td>Hole 11</td><td>0</td><td>1</td><td>1</td><td>2</td><td style="font-weight:bold;">3</td></tr>
+                    <tr><td>Hole 12</td><td>0</td><td>2</td><td>2</td><td>1</td><td style="font-weight:bold;">4</td></tr>
+                    <tr><td>Hole 13</td><td>3</td><td>2</td><td>1</td><td>2</td><td style="font-weight:bold;">5</td></tr>
+                    <tr><td>Hole 14</td><td>1</td><td>2</td><td>3</td><td>4</td><td style="font-weight:bold;">7</td></tr>
+                    <tr><td>Hole 15</td><td>2</td><td>2</td><td>3</td><td>2</td><td style="font-weight:bold;">5</td></tr>
+                    <tr><td>Hole 16</td><td>3</td><td>2</td><td>3</td><td>1</td><td style="font-weight:bold;">6</td></tr>
+                    <tr><td>Hole 17</td><td>3</td><td>1</td><td>2</td><td>1</td><td style="font-weight:bold;">5</td></tr>
+                    <tr><td>Hole 18*</td><td>2</td><td>2</td><td>3</td><td>3</td><td style="font-weight:bold; background:#fff3e0;">10</td></tr>
+                </tbody>
+            </table>
+            <p style="font-size:11px; color:#666; margin-top:5px; font-style:italic;">* Holes 9 & 18: All scores count. Other holes: Best 2 scores count.</p>
+        `;
+    }
+
+    // --- RENDER LOGO AND LAUNCH ---
     const logoImg = document.getElementById('report-logo-img');
     if (typeof club !== 'undefined' && club.logo) {
         logoImg.src = club.logo;
@@ -1240,31 +1386,15 @@ function exportMasterReport() {
         logoImg.style.display = "none";
     }
 
-    // 3. Grab the active layout currently visible on your screen
-    const activeTab = document.querySelector('.tab-content:not(.hidden)');
-    let activeContent = "";
-    
-    if (activeTab) {
-        // Clone the content so we don't destroy your active screen layout
-        const contentClone = activeTab.cloneNode(true);
-        
-        // Remove the action buttons/menus from printing inside the content card
-        contentClone.querySelectorAll('button, select, label, .no-print').forEach(el => el.remove());
-        activeContent = contentClone.innerHTML;
-    }
-
-    // 4. Inject your active games/competitions straight into the printable report card
-    if (activeContent) {
-        document.getElementById('detail-results').innerHTML = activeContent;
-    } else {
-        document.getElementById('detail-results').innerHTML = "<p style='text-align:center; padding:20px;'>No active competition data selected.</p>";
-    }
-
-    // 5. Flip the app view to reveal the printable layout card frame
     document.getElementById('dash-main-view').classList.add('hidden');
     document.getElementById('dash-detail').classList.remove('hidden');
 
-    // 6. Pull up the printer modal cleanly
+    document.getElementById('detail-title').innerText = "Tournament Master Report";
+    document.getElementById('detail-date').innerText = reportSubtitle;
+    document.getElementById('report-club-name').innerText = "Punters Golf Society";
+
+    document.getElementById('detail-results').innerHTML = htmlContent;
+
     setTimeout(() => {
         window.print();
     }, 500);
