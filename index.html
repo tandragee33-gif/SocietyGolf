@@ -255,9 +255,15 @@
                 <h3>Recent Rounds</h3>
                 <select id="dashSeason" onchange="renderDashboard()"></select>
                 <div id="dash-list"></div>
-<button class="btn-share" onclick="exportMasterReport()" style="margin-top:10px; background: #000;">
-    Print Master Report (All Events)
-</button>
+<div style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px; max-width: 300px;">
+    <label for="report-date-select" style="font-weight: bold; font-size: 13px; color: #333;">Select Tournament Date to Print:</label>
+    <select id="report-date-select" style="padding: 8px; border-radius: 6px; border: 1px solid #bbb; font-size: 14px;">
+        <option value="all">-- All Events (Full Season) --</option>
+    </select>
+    <button class="btn-share" onclick="exportMasterReport()" style="background: #000; padding: 10px; margin: 0; color: white; border-radius: 6px; cursor: pointer;">
+        Print Selected Report
+    </button>
+</div>
             </div>
         </div>
 
