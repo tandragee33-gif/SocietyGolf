@@ -85,7 +85,7 @@
         .report-table td { border: 1px solid #ddd; padding: 8px; }
 
 @media print {
-    /* Force background graphics, logos, and green headers to stay bright and full color */
+    /* 1. Force the browser to render your graphics and green headers in full color */
     html, body {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -93,54 +93,34 @@
         font-family: Arial, sans-serif !important;
     }
 
-    /* Wrap a solid, uniform grey border all the way around the printed page sheet */
-    #dash-detail {
+    /* 2. Wrap a solid, clean grey border frame around whichever tab is currently open */
+    .tab-content:not(.hidden), .card {
         display: block !important;
         visibility: visible !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        margin: 0 auto !important;
-        padding: 25px !important;
-        border: 3px solid #777777 !important; /* Locks a distinct grey border around everything */
+        border: 2px solid #777777 !important; /* Thick grey border frame */
         border-radius: 8px !important;
-        box-shadow: none !important;
+        padding: 25px !important;
+        margin: 0 auto !important;
+        width: 100% !important;
         box-sizing: border-box !important;
     }
 
-    /* Keep your custom club logo centered and visible at the top */
-    #report-logo-img, .report-logo {
+    /* 3. Keep your custom club logo centered and clearly visible at the top */
+    img, .logo, .report-logo, #report-logo-img {
         display: block !important;
         max-height: 80px !important;
         margin: 0 auto 15px auto !important;
     }
 
-    /* Keep headers neat and visible */
-    #detail-title { font-size: 22px !important; font-weight: bold !important; margin-bottom: 5px !important; text-align: center !important; }
-    #detail-date { font-size: 14px !important; color: #555 !important; margin-bottom: 20px !important; text-align: center !important; }
-
-    /* Hide the application background views, web headers, side links, and selector drop-downs */
-    nav, .navbar, .tab-header, button, .no-print, .btn-share, .btn-outline, select, label, #dash-main-view, .tab-content:not(#dash-detail) {
+    /* 4. Hide only the screen clutter like navigation bars and your print button */
+    nav, .navbar, .tab-header, .no-print, button, .btn-share, .btn-outline {
         display: none !important;
     }
 
-    /* Make sure your data tables expand fully and show crisp borders on paper */
-    table, .report-table, .matrix-table {
-        width: 100% !important;
-        border-collapse: collapse !important;
-        margin-top: 15px !important;
-    }
-    th {
-        background-color: #2e7d32 !important; /* Keeps your crisp tournament green header */
-        color: white !important;
-        padding: 10px 8px !important;
-        font-weight: bold !important;
-        border: 1px solid #cccccc !important;
-    }
-    td {
-        padding: 10px 8px !important;
-        border: 1px solid #cccccc !important;
-        color: #000000 !important;
-        background: #ffffff !important;
+    /* 5. Keep all data grids, match listings, and bracket tables completely visible */
+    table, th, td, div {
+        visibility: visible !important;
+        opacity: 1 !important;
     }
 }
 /* --- GAMEBOOK 6-COLUMN COMPACT MATRIX STYLES --- */
@@ -274,10 +254,9 @@
     <select id="report-date-select" style="padding: 8px; border-radius: 6px; border: 1px solid #bbb; font-size: 14px;">
         <option value="all">-- All Events (Full Season) --</option>
     </select>
-<button class="btn-share" onclick="window.print()" style="background: #000; padding: 10px; margin: 0; color: white; border-radius: 6px; cursor: pointer;">
-        Print Current Screen
-    </button>
-</div>
+<button class="no-print" onclick="window.print()" style="background: #000; padding: 12px 24px; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%;">
+    🖨️ Print Current Tab
+</button>
             </div>
         </div>
 
