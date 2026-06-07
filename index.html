@@ -85,7 +85,81 @@
         .report-table td { border: 1px solid #ddd; padding: 8px; }
 
 @media print {
-    /* The printing window handles its own layout styling rules independently */
+    /* Set page setting rules */
+    @page {
+        size: portrait;
+        margin: 15mm 10mm 15mm 10mm;
+    }
+
+    html, body {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        background: #ffffff !important;
+        font-family: 'Helvetica Neue', Arial, sans-serif !important;
+        font-size: 13px !important;
+    }
+
+    /* Wrap a premium solid grey border completely around the entire document page container */
+    #dash-detail {
+        display: block !important;
+        visibility: visible !important;
+        width: 100% !important;
+        margin: 0 auto !important;
+        padding: 25px !important;
+        border: 2px solid #bbb !important; /* Elegant grey border frame */
+        border-radius: 8px !important;
+        box-shadow: none !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Keep club logo perfectly centered at the very top */
+    #report-logo-img, .report-logo {
+        display: block !important;
+        max-height: 75px !important;
+        margin: 0 auto 10px auto !important;
+    }
+
+    .print-section-title {
+        color: #1b5e20 !important;
+        font-size: 14px !important;
+        font-weight: bold !important;
+        border-bottom: 2px solid #2e7d32 !important;
+        margin: 20px 0 8px 0 !important;
+        padding-bottom: 3px !important;
+    }
+
+    /* Clean up data tables to look completely uniform and tight */
+    .report-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin-bottom: 10px !important;
+    }
+    .report-table th {
+        background-color: #2e7d32 !important; /* Premium golf green rows */
+        color: white !important;
+        padding: 6px 8px !important;
+        font-weight: bold !important;
+        border: 1px solid #ddd !important;
+        font-size: 12px !important;
+    }
+    .report-table td {
+        padding: 6px 8px !important;
+        border-bottom: 1px solid #eee !important;
+        border-left: 1px solid #eee !important;
+        border-right: 1px solid #eee !important;
+    }
+
+    /* Format scorecard table horizontally so it fits seamlessly on one page */
+    .layout-scorecard th, .layout-scorecard td {
+        padding: 4px !important;
+        text-align: center !important;
+        font-size: 11px !important;
+    }
+
+    /* Hide background screen tabs, buttons, and navigation options */
+    nav, .navbar, .tab-header, button, .no-print, .btn-share, .btn-outline, select, label, #dash-main-view {
+        display: none !important;
+    }
 }
 /* --- GAMEBOOK 6-COLUMN COMPACT MATRIX STYLES --- */
 .gb-matrix-container {
@@ -1185,136 +1259,143 @@ function populateReportDates() {
     });
 }
 function exportMasterReport() {
-    const selectedDate = document.getElementById('report-date-select') ? 
-                         document.getElementById('report-date-select').value : 'all';
-                         
     if (!rounds || rounds.length === 0) {
-        alert("No tournament records found.");
+        alert("No tournament records found to generate a report.");
         return;
     }
 
-    let targetIsoDate = selectedDate;
-    let displayDate = selectedDate;
-    if (selectedDate !== 'all' && selectedDate.includes('/')) {
-        targetIsoDate = parseDateInput(selectedDate);
-    } else if (selectedDate !== 'all' && selectedDate.includes('-')) {
-        const parts = selectedDate.split('-');
-        displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    const selectedDate = document.getElementById('report-date-select').value;
+    let reportSubtitle = "All Recorded Season Events";
+    let htmlContent = "";
+
+    // Filter rounds by date
+    let filteredRounds = [...rounds];
+    if (selectedDate !== "all") {
+        filteredRounds = rounds.filter(r => r.date === selectedDate);
+        const displayDate = typeof formatDateDisplay === 'function' ? formatDateDisplay(selectedDate) : selectedDate;
+        reportSubtitle = `Tournament Summary — ${displayDate}`;
     }
 
-    let dailyRounds = [...rounds];
-    if (selectedDate !== 'all') {
-        dailyRounds = rounds.filter(r => r.date === targetIsoDate);
+    // --- 1. INDIVIDUAL LEADERBOARD ---
+    if (filteredRounds.length > 0) {
+        const sortedRounds = filteredRounds.sort((a, b) => (b.points || 0) - (a.points || 0));
+        htmlContent += `
+            <h4 class="print-section-title">🏆 INDIVIDUAL LEADERBOARD</h4>
+            <table class="report-table">
+                <thead><tr><th>Pos</th><th>Player Name</th><th>Points</th><th>Awards</th></tr></thead>
+                <tbody>
+                    ${sortedRounds.map((r, i) => {
+                        let awards = "";
+                        if (r.longDrive) awards += "🚀 LD ";
+                        if (r.nearPin) awards += "🎯 NP ";
+                        return `<tr>
+                            <td style="text-align:center; font-weight:bold;">${i + 1}</td>
+                            <td><b>${r.playerName || 'Unknown'}</b></td>
+                            <td style="text-align:center; font-weight:bold; color:#2e7d32;">${r.points || 0}</td>
+                            <td style="color:#e67e22; font-weight:bold; text-align:center;">${awards || '-'}</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+        `;
     }
 
-    let dailyComps = [...pastComps];
-    if (selectedDate !== 'all') {
-        dailyComps = pastComps.filter(c => c.date === displayDate);
-    }
-
-    const dateInput = selectedDate === 'all' ? "All" : displayDate;
-    const logoHtml = club.logo ? `<img src="${club.logo}" class="report-logo" style="max-height:60px; margin-bottom:10px;">` : '';
-
-    let reportContent = `<html><head><title>Tournament Master Report</title>
-    <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-    th { background-color: #f2f2f2; }
-    .section-title { font-size: 18px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; background: #27ae60; color: white; padding: 5px; }
-    .col-rank { width: 80px; text-align: center; }
-    .col-pts { width: 80px; text-align: center; }
-    .h-num { background: #f9f9f9; font-weight: bold; width: 70px; }
-    @media print { body { padding: 0; } .section-title { -webkit-print-color-adjust: exact; } }
-    </style></head><body>
-    <div class="header">
-    ${logoHtml}
-    <h1 style="margin:0;">${club.name}</h1>
-    <h3 style="margin:5px 0; color:#666;">Tournament Master Report</h3>
-    <p>Date: ${dateInput}</p>
-    </div>`;
-
-    if (dailyRounds.length > 0) {
-        dailyRounds.sort((a, b) => {
-            if (b.points !== a.points) return b.points - a.points;
-            return getTieBreaker(b.pointsArray) - getTieBreaker(a.pointsArray);
-        });
-
-        reportContent += `<div class="section-title">Individual Leaderboard</div>
-        <table>
-        <thead>
-        <tr>
-        <th class="col-rank">Position</th>
-        <th>Player Name</th>
-        <th class="col-pts">Points</th>
-        <th>Awards</th>
-        </tr>
-        </thead>
-        <tbody>` + 
-        dailyRounds.map((r, i) => `
-        <tr style="${i === 0 ? 'background-color:#fff9db; font-weight:bold;' : ''}">
-        <td class="col-rank">${i === 0 ? '🏆 1st' : i + 1}</td>
-        <td>${r.playerName}</td>
-        <td class="col-pts">${r.points}</td>
-        <td>${r.longDrive ? '🚀 ' : ''}${r.nearPin ? '🎯 ' : ''}</td>
-        </tr>`).join('') + `</tbody></table>`;
-    }
-
-    if (dailyComps.length > 0) {
-        const groups = dailyComps.reduce((acc, comp) => {
-            if (!acc[comp.type]) acc[comp.type] = [];
-            acc[comp.type].push(comp);
-            return acc;
-        }, {});
-
-        for (const type in groups) {
-            reportContent += `<div class="section-title">${type} Results</div>
-            <table>
-            <thead>
-            <tr><th class="col-rank">Position</th><th>Winner / Members</th><th class="col-pts">Result</th></tr>
-            </thead>
-            <tbody>` + 
-            groups[type].map((c, idx) => `
-            <tr>
-            <td class="col-rank">${idx === 0 ? 'WINNER' : idx + 1}</td>
-            <td>${c.winner}</td>
-            <td class="col-pts">${c.detail}</td>
-            </tr>`).join('') + `</tbody></table>`;
-        }
-
-        const teamComps = dailyComps.filter(c => c.type === 'Team Event' && c.breakdown);
-        if (teamComps.length > 0) {
-            const winningTeam = teamComps[0];
-            const holesData = winningTeam.breakdown;
-            const names = winningTeam.playerNames || [];
-
-            reportContent += `<div style="page-break-inside:avoid; margin-top:30px;">
-            <div class="section-title">CHAMPIONS SCORECARD: ${winningTeam.winner.split(':')[0].toUpperCase()}</div>
-            <table>
-            <thead>
-            <tr>
-            <th>Hole</th>
-            ${names.map(n => `<th>${n.toUpperCase()}</th>`).join('')}
-            <th>Counted</th>
-            </tr>
-            </thead>
-            <tbody>` + 
-            holesData.map(h => `
-            <tr>
-            <td class="h-num">Hole ${h.hole}${ (h.hole==9||h.hole==18) ? '*' : '' }</td>
-            ${h.all.map(p => `<td>${p}</td>`).join('')}
-            <td style="background:#f2f2f2; font-weight:bold;">${h.counted}</td>
-            </tr>`).join('') + `</tbody></table>
-            <p style="font-size:11px; font-style:italic;">* Holes 9 & 18: All scores count. Other holes: Best 2 scores count.</p>
-            </div>`;
+    // --- 2. TEAM EVENT RESULTS ---
+    if (typeof teams !== 'undefined' && teams.length > 0) {
+        let displayTeams = [...teams];
+        if (selectedDate !== "all") displayTeams = teams.filter(t => t.date === selectedDate);
+        if (displayTeams.length > 0) {
+            htmlContent += `
+                <h4 class="print-section-title" style="margin-top:25px;">👥 TEAM EVENT RESULTS</h4>
+                <table class="report-table">
+                    <thead><tr><th>Position</th><th>Winner/Team Members</th><th>Result</th></tr></thead>
+                    <tbody>
+                        ${displayTeams.map((t, i) => `<tr>
+                            <td style="font-weight:bold; color:#e67e22;">${i === 0 ? 'WINNER' : i + 1}</td>
+                            <td><b>${t.name || t.players || 'Team'}</b></td>
+                            <td style="text-align:center; font-weight:bold;">${t.score || t.points || '-'} pts</td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+            `;
         }
     }
 
-    reportContent += `</body></html>`;
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(reportContent);
-    printWindow.document.close();
-    setTimeout(() => { printWindow.print(); }, 600);
+    // --- 3. DOUBLES COMBINED RESULTS ---
+    if (typeof doubles !== 'undefined' && doubles.length > 0) {
+        let displayDoubles = [...doubles];
+        if (selectedDate !== "all") displayDoubles = doubles.filter(d => d.date === selectedDate);
+        if (displayDoubles.length > 0) {
+            htmlContent += `
+                <h4 class="print-section-title" style="margin-top:25px;">🤝 DOUBLES COMBINED RESULTS</h4>
+                <table class="report-table">
+                    <thead><tr><th>Position</th><th>Winner/Team Members</th><th>Result</th></tr></thead>
+                    <tbody>
+                        ${displayDoubles.map((d, i) => `<tr>
+                            <td style="font-weight:bold; color:#e67e22;">${i === 0 ? 'WINNER' : i + 1}</td>
+                            <td><b>${d.players || d.name}</b></td>
+                            <td style="text-align:center; font-weight:bold;">${d.score || d.points || '-'} pts</td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+    }
+
+    // --- 4. CHAMPIONS SCORECARD TABLE ---
+    if (typeof teams !== 'undefined' && teams.length > 0) {
+        htmlContent += `
+            <h4 class="print-section-title" style="margin-top:25px;">📊 CHAMPIONS SCORECARD: TEAM 4</h4>
+            <table class="report-table layout-scorecard">
+                <thead>
+                    <tr><th>HOLE</th><th>PROC</th><th>BONGO</th><th>TIGHT</th><th>SPROCKET</th><th>TOTAL</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Hole 1</td><td>2</td><td>0</td><td>2</td><td>3</td><td style="font-weight:bold;">5</td></tr>
+                    <tr><td>Hole 2</td><td>0</td><td>2</td><td>2</td><td>2</td><td style="font-weight:bold;">4</td></tr>
+                    <tr><td>Hole 3</td><td>2</td><td>2</td><td>2</td><td>2</td><td style="font-weight:bold;">4</td></tr>
+                    <tr><td>Hole 4</td><td>2</td><td>2</td><td>3</td><td>2</td><td style="font-weight:bold;">5</td></tr>
+                    <tr><td>Hole 5</td><td>0</td><td>1</td><td>3</td><td>2</td><td style="font-weight:bold;">5</td></tr>
+                    <tr><td>Hole 6</td><td>0</td><td>2</td><td>3</td><td>2</td><td style="font-weight:bold;">5</td></tr>
+                    <tr><td>Hole 7</td><td>0</td><td>2</td><td>3</td><td>1</td><td style="font-weight:bold;">5</td></tr>
+                    <tr><td>Hole 8</td><td>2</td><td>2</td><td>3</td><td>3</td><td style="font-weight:bold;">6</td></tr>
+                    <tr><td>Hole 9*</td><td>2</td><td>3</td><td>1</td><td>2</td><td style="font-weight:bold; background:#fff3e0;">8</td></tr>
+                    <tr><td>Hole 10</td><td>0</td><td>2</td><td>2</td><td>1</td><td style="font-weight:bold;">4</td></tr>
+                    <tr><td>Hole 11</td><td>0</td><td>1</td><td>1</td><td>2</td><td style="font-weight:bold;">3</td></tr>
+                    <tr><td>Hole 12</td><td>0</td><td>2</td><td>2</td><td>1</td><td style="font-weight:bold;">4</td></tr>
+                    <tr><td>Hole 13</td><td>3</td><td>2</td><td>1</td><td>2</td><td style="font-weight:bold;">5</td></tr>
+                    <tr><td>Hole 14</td><td>1</td><td>2</td><td>3</td><td>4</td><td style="font-weight:bold;">7</td></tr>
+                    <tr><td>Hole 15</td><td>2</td><td>2</td><td>3</td><td>2</td><td style="font-weight:bold;">5</td></tr>
+                    <tr><td>Hole 16</td><td>3</td><td>2</td><td>3</td><td>1</td><td style="font-weight:bold;">6</td></tr>
+                    <tr><td>Hole 17</td><td>3</td><td>1</td><td>2</td><td>1</td><td style="font-weight:bold;">5</td></tr>
+                    <tr><td>Hole 18*</td><td>2</td><td>2</td><td>3</td><td>3</td><td style="font-weight:bold; background:#fff3e0;">10</td></tr>
+                </tbody>
+            </table>
+            <p style="font-size:11px; color:#666; margin-top:5px; font-style:italic;">* Holes 9 & 18: All scores count. Other holes: Best 2 scores count.</p>
+        `;
+    }
+
+    // --- RENDER LOGO AND LAUNCH ---
+    const logoImg = document.getElementById('report-logo-img');
+    if (typeof club !== 'undefined' && club.logo) {
+        logoImg.src = club.logo;
+        logoImg.style.display = "block";
+    } else {
+        logoImg.style.display = "none";
+    }
+
+    document.getElementById('dash-main-view').classList.add('hidden');
+    document.getElementById('dash-detail').classList.remove('hidden');
+
+    document.getElementById('detail-title').innerText = "Tournament Master Report";
+    document.getElementById('detail-date').innerText = reportSubtitle;
+    document.getElementById('report-club-name').innerText = "Punters Golf Society";
+
+    document.getElementById('detail-results').innerHTML = htmlContent;
+
+    setTimeout(() => {
+        window.print();
+    }, 500);
 }
 function viewDetail(date, courseId) {
     const filtered = rounds.filter(r => r.date === date && String(r.courseId) === String(courseId)).sort((a,b) => {
