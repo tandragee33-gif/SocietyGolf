@@ -1217,7 +1217,7 @@ function exportMasterReport() {
 
     let reportContent = `<html><head><title>Tournament Master Report</title>
     <style>
-    body { font-family: Arial, sans-serif; padding: 20px; color: #000; background: #fff; }
+    body { font-family: Arial, sans-serif; padding: 20px; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
     th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
     th { background-color: #f2f2f2; }
@@ -1225,23 +1225,22 @@ function exportMasterReport() {
     .col-rank { width: 80px; text-align: center; }
     .col-pts { width: 80px; text-align: center; }
     .h-num { background: #f9f9f9; font-weight: bold; width: 70px; }
-    @media print { body { padding: 0; } .section-title { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    @media print { body { padding: 0; } .section-title { -webkit-print-color-adjust: exact; } }
     </style></head><body>
-    <div class="header" style="text-align: center; margin-bottom: 20px;">
+    <div class="header">
     ${logoHtml}
     <h1 style="margin:0;">${club.name}</h1>
     <h3 style="margin:5px 0; color:#666;">Tournament Master Report</h3>
     <p>Date: ${dateInput}</p>
     </div>`;
 
-    // 1. INDIVIDUAL LEADERBOARD (ALL PLAYERS)
     if (dailyRounds.length > 0) {
         dailyRounds.sort((a, b) => {
             if (b.points !== a.points) return b.points - a.points;
             return getTieBreaker(b.pointsArray) - getTieBreaker(a.pointsArray);
         });
 
-        reportContent += `<div class="section-title">🏆 Individual Leaderboard</div>
+        reportContent += `<div class="section-title">Individual Leaderboard</div>
         <table>
         <thead>
         <tr>
@@ -1253,15 +1252,14 @@ function exportMasterReport() {
         </thead>
         <tbody>` + 
         dailyRounds.map((r, i) => `
-        <tr>
-        <td class="col-rank">${i+1}</td>
+        <tr style="${i === 0 ? 'background-color:#fff9db; font-weight:bold;' : ''}">
+        <td class="col-rank">${i === 0 ? '🏆 1st' : i + 1}</td>
         <td>${r.playerName}</td>
-        <td class="col-pts" style="font-weight: bold;">${r.points}</td>
-        <td style="font-size: 1.1rem;">${r.longDrive ? '🚀 LD ' : ''}${r.nearPin ? '🎯 NP' : ''}</td>
+        <td class="col-pts">${r.points}</td>
+        <td>${r.longDrive ? '🚀 ' : ''}${r.nearPin ? '🎯 ' : ''}</td>
         </tr>`).join('') + `</tbody></table>`;
     }
 
-    // 2. ALL OTHER COMPETITION RESULTS
     if (dailyComps.length > 0) {
         const groups = dailyComps.reduce((acc, comp) => {
             if (!acc[comp.type]) acc[comp.type] = [];
@@ -1270,8 +1268,7 @@ function exportMasterReport() {
         }, {});
 
         for (const type in groups) {
-            let typeIcon = type === 'Team Event' ? '👥 ' : '🤝 ';
-            reportContent += `<div class="section-title">${typeIcon}${type} Results</div>
+            reportContent += `<div class="section-title">${type} Results</div>
             <table>
             <thead>
             <tr><th class="col-rank">Position</th><th>Winner / Members</th><th class="col-pts">Result</th></tr>
@@ -1279,9 +1276,9 @@ function exportMasterReport() {
             <tbody>` + 
             groups[type].map((c, idx) => `
             <tr>
-            <td class="col-rank" style="font-weight: bold; color: ${idx === 0 ? '#e67e22' : '#333'};">${idx === 0 ? '🏆 WINNER' : idx + 1}</td>
-            <td><b>${c.winner}</b></td>
-            <td class="col-pts" style="font-weight: bold; color: #27ae60;">${c.detail}</td>
+            <td class="col-rank">${idx === 0 ? 'WINNER' : idx + 1}</td>
+            <td>${c.winner}</td>
+            <td class="col-pts">${c.detail}</td>
             </tr>`).join('') + `</tbody></table>`;
         }
 
@@ -1292,11 +1289,11 @@ function exportMasterReport() {
             const names = winningTeam.playerNames || [];
 
             reportContent += `<div style="page-break-inside:avoid; margin-top:30px;">
-            <div class="section-title">📊 CHAMPIONS SCORECARD: ${winningTeam.winner.split(':')[0].toUpperCase()}</div>
-            <table style="text-align: center;">
+            <div class="section-title">CHAMPIONS SCORECARD: ${winningTeam.winner.split(':')[0].toUpperCase()}</div>
+            <table>
             <thead>
             <tr>
-            <th style="text-align: left;">Hole</th>
+            <th>Hole</th>
             ${names.map(n => `<th>${n.toUpperCase()}</th>`).join('')}
             <th>Counted</th>
             </tr>
@@ -1304,39 +1301,20 @@ function exportMasterReport() {
             <tbody>` + 
             holesData.map(h => `
             <tr>
-            <td class="h-num" style="text-align: left;">Hole ${h.hole}${ (h.hole==9||h.hole==18) ? '*' : '' }</td>
+            <td class="h-num">Hole ${h.hole}${ (h.hole==9||h.hole==18) ? '*' : '' }</td>
             ${h.all.map(p => `<td>${p}</td>`).join('')}
-            <td style="background:#e8f5e9; font-weight:bold; color: #27ae60;">${h.counted}</td>
+            <td style="background:#f2f2f2; font-weight:bold;">${h.counted}</td>
             </tr>`).join('') + `</tbody></table>
-            <p style="font-size:11px; font-style:italic; text-align: left;">* Holes 9 & 18: All scores count. Other holes: Best 2 scores count.</p>
+            <p style="font-size:11px; font-style:italic;">* Holes 9 & 18: All scores count. Other holes: Best 2 scores count.</p>
             </div>`;
         }
     }
 
     reportContent += `</body></html>`;
-
-    // --- FIX: PRINT DOCKING VIA AN INVISIBLE FRAME OVER YOUR CURRENT SCREEN ---
-    let iframe = document.getElementById('report-print-frame');
-    if (!iframe) {
-        iframe = document.createElement('iframe');
-        iframe.id = 'report-print-frame';
-        iframe.style.position = 'absolute';
-        iframe.style.width = '0px';
-        iframe.style.height = '0px';
-        iframe.style.border = 'none';
-        document.body.appendChild(iframe);
-    }
-
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(reportContent);
-    doc.close();
-
-    // Trigger printing cleanly over your app screen, then do not open any tabs!
-    setTimeout(() => {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-    }, 400);
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(reportContent);
+    printWindow.document.close();
+    setTimeout(() => { printWindow.print(); }, 600);
 }
 function viewDetail(date, courseId) {
     const filtered = rounds.filter(r => r.date === date && String(r.courseId) === String(courseId)).sort((a,b) => {
