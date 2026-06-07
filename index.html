@@ -85,47 +85,54 @@
         .report-table td { border: 1px solid #ddd; padding: 8px; }
 
 @media print {
-    /* Force color backgrounds and images/logos to print in full vibrant color */
     html, body {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        background: #f5f5f5 !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
-    #dash-detail, #report-content, .card {
+    /* Force the main card frame and its sleek grey border outline to stay visible */
+    #dash-detail, .card {
         display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
-        height: auto !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 10px !important;
+        width: 95% !important;
+        margin: 20px auto !important;
+        padding: 20px !important;
+        background: #ffffff !important;
+        border: 2px solid #ddd !important; /* Thick grey border surrounding full page */
+        border-radius: 8px !important;
+        box-shadow: none !important;
     }
 
-    /* Keep the logo completely visible and in its natural colors */
-    .report-logo {
-        display: block !important;
-        max-height: 80px !important;
-        margin: 0 auto 15px auto !important;
+    .print-section-title {
+        color: #2e7d32 !important;
+        border-bottom: 2px solid #2e7d32 !important;
+        padding-bottom: 5px !important;
+        margin-top: 20px !important;
+        font-size: 16px !important;
     }
 
-    /* Hide the non-printable interface clutter */
-    nav, .navbar, .tab-header, button, .no-print, .btn-outline, .btn-share, #btn-lock-round {
+    nav, .navbar, .tab-header, button, .no-print, .btn-outline, .btn-share {
         display: none !important;
     }
 
-    /* Clean up the master table layout */
     .report-table {
         width: 100% !important;
         border-collapse: collapse !important;
-        margin-top: 20px !important;
+        margin-bottom: 15px !important;
     }
+    
     .report-table th {
-        background-color: #2e7d32 !important; /* Premium golf green header row */
+        background-color: #2e7d32 !important;
         color: white !important;
-        padding: 10px !important;
+        padding: 8px !important;
     }
+
     .report-table td {
-        padding: 10px !important;
+        padding: 8px !important;
         border-bottom: 1px solid #ddd !important;
     }
 }
@@ -1231,13 +1238,74 @@ function populateReportDates() {
 }
 function exportMasterReport() {
     if (!rounds || rounds.length === 0) {
-        alert("No tournament records found to generate a master report.");
+        alert("No tournament records found to generate a report.");
         return;
     }
 
-    // 1. Handle the logo presentation
+    const selectedDate = document.getElementById('report-date-select').value;
+    let reportSubtitle = "All Recorded Season Events";
+    let htmlContent = "";
+
+    // --- SECTION 1: INDIVIDUAL STROKE PLAY / POINTS ---
+    let filteredRounds = [...rounds];
+    if (selectedDate !== "all") {
+        filteredRounds = rounds.filter(r => r.date === selectedDate);
+        const displayDate = typeof formatDateDisplay === 'function' ? formatDateDisplay(selectedDate) : selectedDate;
+        reportSubtitle = `Tournament Summary — ${displayDate}`;
+    }
+
+    if (filteredRounds.length > 0) {
+        const sortedRounds = filteredRounds.sort((a, b) => (b.points || 0) - (a.points || 0));
+        htmlContent += `
+            <h4 class="print-section-title">🏆 Individual Leaderboard</h4>
+            <table class="report-table">
+                <thead><tr><th>Pos</th><th>Player</th><th>Points</th><th>Awards</th></tr></thead>
+                <tbody>
+                    ${sortedRounds.map((r, i) => {
+                        let awards = "";
+                        if (r.longDrive) awards += "🚀 Long Drive ";
+                        if (r.nearPin) awards += "🎯 Near Pin ";
+                        return `<tr>
+                            <td style="text-align:center; font-weight:bold;">${i + 1}</td>
+                            <td><b>${r.playerName || 'Unknown'}</b><br><small style="color:#666;">${r.courseName || ''}</small></td>
+                            <td style="text-align:center; font-weight:bold; color:#2e7d32;">${r.points || 0} pts</td>
+                            <td style="color:#e67e22; font-size:13px;">${awards || '-'}</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    // --- SECTION 2: TEAM / DOUBLES / KNOCKOUTS ---
+    // If you have team or knockout data variables saved (like teams, doubles, knockouts), we display them here
+    if (typeof teams !== 'undefined' && teams.length > 0) {
+        let displayTeams = [...teams];
+        if (selectedDate !== "all") displayTeams = teams.filter(t => t.date === selectedDate);
+        
+        if (displayTeams.length > 0) {
+            htmlContent += `
+                <h4 class="print-section-title" style="margin-top:25px;">👥 Team & Doubles Results</h4>
+                <table class="report-table">
+                    <thead><tr><th>Team / Pair</th><th>Score / Status</th></tr></thead>
+                    <tbody>
+                        ${displayTeams.map(t => `<tr>
+                            <td><b>${t.name || t.players || 'Unnamed Team'}</b></td>
+                            <td style="text-align:center; font-weight:bold;">${t.score || t.points || '-'}</td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+    }
+
+    // fallback placeholder if no matches found for separate events on that date
+    if (!htmlContent) {
+        htmlContent = "<p style='text-align:center; padding: 20px; color:#666;'>No data points recorded for this date layout.</p>";
+    }
+
+    // --- SECTION 3: LOADING INTO CONTAINER ---
     const logoImg = document.getElementById('report-logo-img');
-    // If you have a custom club logo uploaded or saved, show it in color
     if (club && club.logo) {
         logoImg.src = club.logo;
         logoImg.style.display = "block";
@@ -1245,41 +1313,16 @@ function exportMasterReport() {
         logoImg.style.display = "none";
     }
 
-    // 2. Open up the view containers
     document.getElementById('dash-main-view').classList.add('hidden');
     document.getElementById('dash-detail').classList.remove('hidden');
 
-    // 3. Set titles
-    document.getElementById('detail-title').innerText = "Master Championship Standings";
-    document.getElementById('detail-date').innerText = "All Recorded Season Events";
+    document.getElementById('detail-title').innerText = selectedDate === "all" ? "Master Championship Standings" : "Daily Event Report";
+    document.getElementById('detail-date').innerText = reportSubtitle;
     document.getElementById('report-club-name').innerText = (club && club.name) ? club.name : "Golf Pro Manager";
 
-    // 4. Sort all historical events together cleanly by score points
-    const masterSorted = [...rounds].sort((a, b) => (b.points || 0) - (a.points || 0));
+    // Inject all compiled sections safely directly into the layout box
+    document.getElementById('detail-results').parentElement.innerHTML = htmlContent;
 
-    // 5. Render every single row into the printable table matrix
-    document.getElementById('detail-results').innerHTML = masterSorted.map((r, i) => {
-        let awards = "";
-        if (r.longDrive) awards += "🚀 Long Drive ";
-        if (r.nearPin) awards += "🎯 Near Pin ";
-        
-        // Format names safely
-        const pName = r.playerName || "Unknown Player";
-        const cName = r.courseName || "Unknown Course";
-        const rDate = r.date ? formatDateDisplay(r.date) : "";
-
-        return `<tr>
-            <td style="text-align: center; font-weight: bold;">${i + 1}</td>
-            <td>
-                <span style="font-size: 15px; font-weight: bold; color: #333;">${pName}</span><br>
-                <small style="color:#666;">${cName} — ${rDate}</small>
-            </td>
-            <td style="text-align: center; font-weight: bold; color: #2e7d32; font-size: 15px;">${r.points || 0} pts</td>
-            <td style="font-size: 13px; color: #e67e22;">${awards || '-'}</td>
-        </tr>`;
-    }).join('');
-
-    // 6. Give the browser an extra moment to render images before pulling up the printer box
     setTimeout(() => {
         window.print();
     }, 400);
