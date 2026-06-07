@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Golf Pro Manager - Tournament Edition</title>
-    <style>
+<style>
 /* --- LIVE SCORECARD HORIZONTAL LAYOUT STYLES --- */
 .live-score-container {
     display: flex;
@@ -65,7 +65,12 @@
         .header h1 { margin: 0; color: var(--primary); font-size: 1.2rem; flex-grow: 1; }
 
         .nav { display: flex; background: var(--primary); position: sticky; top: 0; z-index: 1000; overflow-x: auto; }
-        .nav button { flex: 1; min-width: 70px; padding: 14px 5px; border: none; background: none; color: white; font-size: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        .nav button { flex: 1; min-width: 70px; padding: 14px 5px; border: none; background: #2ecc71;
+color: white; font-size: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+.nav button.active {
+    background: #27ae60;
+}
+
         .nav button.active { border-bottom: 4px solid var(--accent); background: rgba(255,255,255,0.1); }
         
         .container { padding: 15px; max-width: 900px; margin: auto; }
