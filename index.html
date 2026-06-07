@@ -247,7 +247,7 @@ color: white; font-size: 10px; font-weight: bold; cursor: pointer; text-transfor
                 <h3>Recent Rounds</h3>
                 <select id="dashSeason" onchange="renderDashboard()"></select>
                 <div id="dash-list"></div>
-<button class="btn-share" onclick="exportMasterReport()" style="margin-top:10px; background: #000;">
+<button class="btn-share" onclick="openMasterReport()" style="margin-top:10px; background: #000;">
     Print Master Report (All Events)
 </button>
             </div>
@@ -370,7 +370,26 @@ color: white; font-size: 10px; font-weight: bold; cursor: pointer; text-transfor
                     <button class="btn-del" onclick="resetDoublesSelection()">Clear All</button>
                 </div>
             </div>
+<!-- MASTER REPORT (ALL EVENTS) -->
+<div id="master-report" class="hidden card">
+    <div class="no-print">
+        <button class="btn-outline" onclick="closeMasterReport()">← Back</button>
+        <button class="btn-share" onclick="window.print()">Print / PDF</button>
+        <hr>
+    </div>
 
+    <h2>Master Event Report</h2>
+
+    <label>Start Date:</label>
+    <input type="date" id="mrStart">
+
+    <label>End Date:</label>
+    <input type="date" id="mrEnd">
+
+    <button class="btn" onclick="generateMasterReport()">Generate Report</button>
+
+    <div id="mr-output" style="margin-top:20px;"></div>
+</div>
             <div id="db-step2" class="hidden">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <p style="font-size:12px;">2. Scoring (Auto-populated if history exists):</p>
@@ -552,6 +571,58 @@ function getScoreColor(pts) {
     if (pts >= 3) return '#27ae60'; // Green (Great)
     if (pts === 2) return '#2980b9'; // Blue (Good)
     return '#333';                   // Black (Standard)
+}
+function openMasterReport() {
+    document.getElementById('dash-main-view').classList.add('hidden');
+    document.getElementById('dash-detail').classList.add('hidden');
+    document.getElementById('master-report').classList.remove('hidden');
+}
+
+function closeMasterReport() {
+    document.getElementById('master-report').classList.add('hidden');
+    document.getElementById('dash-main-view').classList.remove('hidden');
+}
+
+function generateMasterReport() {
+    const start = document.getElementById('mrStart').value;
+    const end = document.getElementById('mrEnd').value;
+
+    if (!start || !end) {
+        alert("Please select both start and end dates.");
+        return;
+    }
+
+    const s = new Date(start);
+    const e = new Date(end);
+
+    const filtered = pastComps.filter(c => {
+        const d = new Date(parseDateInput(c.date));
+        return d >= s && d <= e;
+    });
+
+    if (filtered.length === 0) {
+        document.getElementById('mr-output').innerHTML =
+            "<p>No events found in this date range.</p>";
+        return;
+    }
+
+    document.getElementById('mr-output').innerHTML = `
+        <table class="report-table">
+            <thead>
+                <tr><th>Date</th><th>Event</th><th>Winner</th><th>Detail</th></tr>
+            </thead>
+            <tbody>
+                ${filtered.map(c => `
+                    <tr>
+                        <td>${c.date}</td>
+                        <td>${c.type}</td>
+                        <td>${c.winner}</td>
+                        <td>${c.detail || ''}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
 }
 function colorLive(input) {
     const val = parseInt(input.value);
