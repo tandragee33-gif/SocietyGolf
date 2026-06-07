@@ -559,18 +559,32 @@ color: white; font-size: 10px; font-weight: bold; cursor: pointer; text-transfor
         <hr>
     </div>
 
-    <h2>Master Event Report</h2>
-
-    <label>Start Date:</label>
-    <input type="date" id="mrStart">
-
-    <label>End Date:</label>
-    <input type="date" id="mrEnd">
-
-    <button class="btn" onclick="generateMasterReport()">Generate Report</button>
-
-    <div id="mr-output" style="margin-top:20px;"></div>
+<!-- REPORT HEADER -->
+<div class="report-header" style="text-align:center; margin-bottom:20px;">
+    <img id="mr-logo" src="" style="max-width:120px; display:none; margin-bottom:10px;">
+    <h2 id="mr-club-name" style="margin:0; font-size:22px;"></h2>
+    <h3 style="margin:5px 0 20px 0; color:#555;">Master Event Report</h3>
 </div>
+
+<!-- DATE FILTERS -->
+<div style="display:flex; gap:20px; justify-content:center; margin-bottom:20px;">
+    <div>
+        <label>Start Date:</label><br>
+        <input type="date" id="mrStart">
+    </div>
+
+    <div>
+        <label>End Date:</label><br>
+        <input type="date" id="mrEnd">
+    </div>
+</div>
+
+<div style="text-align:center;">
+    <button class="btn" onclick="generateMasterReport()">Generate Report</button>
+</div>
+
+<!-- OUTPUT -->
+<div id="mr-output" style="margin-top:20px;"></div>
 
 <script>
 // PUT THIS AT THE TOP OF THE FIRST SCRIPT TAG
@@ -583,6 +597,18 @@ function openMasterReport() {
     document.getElementById('dash-main-view').classList.add('hidden');
     document.getElementById('dash-detail').classList.add('hidden');
     document.getElementById('master-report').classList.remove('hidden');
+
+    // Load club name
+    document.getElementById('mr-club-name').textContent = club.name || "Golf Pro Manager";
+
+    // Load club logo
+    const logo = document.getElementById('mr-logo');
+    if (club.logo) {
+        logo.src = club.logo;
+        logo.style.display = "block";
+    } else {
+        logo.style.display = "none";
+    }
 }
 
 function closeMasterReport() {
