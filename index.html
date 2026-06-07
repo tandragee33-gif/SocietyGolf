@@ -85,52 +85,62 @@
         .report-table td { border: 1px solid #ddd; padding: 8px; }
 
 @media print {
-    /* 1. Force the browser to render your logo and green headers in full color */
+    /* Force background graphics, logos, and green headers to stay bright and full color */
     html, body {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         background: #ffffff !important;
+        font-family: Arial, sans-serif !important;
     }
 
-    /* 2. Lock a premium grey border outline strictly around your final report sheet */
+    /* Wrap a solid, uniform grey border all the way around the printed page sheet */
     #dash-detail {
         display: block !important;
         visibility: visible !important;
         width: 100% !important;
+        max-width: 100% !important;
         margin: 0 auto !important;
-        padding: 20px !important;
-        border: 2px solid #ddd !important; /* The solid grey border surrounding the page */
+        padding: 25px !important;
+        border: 3px solid #777777 !important; /* Locks a distinct grey border around everything */
         border-radius: 8px !important;
         box-shadow: none !important;
+        box-sizing: border-box !important;
     }
 
-    /* 3. Center and show your custom club logo */
+    /* Keep your custom club logo centered and visible at the top */
     #report-logo-img, .report-logo {
         display: block !important;
         max-height: 80px !important;
         margin: 0 auto 15px auto !important;
     }
 
-    /* 4. Hide all background screen elements, dropdowns, and menu buttons */
-    nav, .navbar, .tab-header, button, .no-print, .btn-share, .btn-outline, select, label, #dash-main-view {
+    /* Keep headers neat and visible */
+    #detail-title { font-size: 22px !important; font-weight: bold !important; margin-bottom: 5px !important; text-align: center !important; }
+    #detail-date { font-size: 14px !important; color: #555 !important; margin-bottom: 20px !important; text-align: center !important; }
+
+    /* Hide the application background views, web headers, side links, and selector drop-downs */
+    nav, .navbar, .tab-header, button, .no-print, .btn-share, .btn-outline, select, label, #dash-main-view, .tab-content:not(#dash-detail) {
         display: none !important;
     }
 
-    /* 5. Clean up your data tables so they span beautifully across the paper width */
-    table, .report-table {
+    /* Make sure your data tables expand fully and show crisp borders on paper */
+    table, .report-table, .matrix-table {
         width: 100% !important;
         border-collapse: collapse !important;
         margin-top: 15px !important;
     }
     th {
-        background-color: #2e7d32 !important; /* Clean tournament-green column headers */
+        background-color: #2e7d32 !important; /* Keeps your crisp tournament green header */
         color: white !important;
-        padding: 8px !important;
+        padding: 10px 8px !important;
+        font-weight: bold !important;
+        border: 1px solid #cccccc !important;
     }
     td {
-        padding: 8px !important;
-        border-bottom: 1px solid #ddd !important;
-        color: #333 !important;
+        padding: 10px 8px !important;
+        border: 1px solid #cccccc !important;
+        color: #000000 !important;
+        background: #ffffff !important;
     }
 }
 /* --- GAMEBOOK 6-COLUMN COMPACT MATRIX STYLES --- */
@@ -1234,16 +1244,15 @@ function populateReportDates() {
     });
 }
 function exportMasterReport() {
-    // 1. Get the date chosen from your selector
+    // 1. Set up the header texts dynamically based on the dropdown selection
     const selectedDate = document.getElementById('report-date-select').value;
     const displayDate = typeof formatDateDisplay === 'function' ? formatDateDisplay(selectedDate) : selectedDate;
     
-    // 2. Set up the header texts dynamically
-    document.getElementById('detail-title').innerText = selectedDate === "all" ? "Master Championship Standings" : "Tournament Leaderboard";
-    document.getElementById('detail-date').innerText = selectedDate === "all" ? "All Recorded Season Events" : `Tournament Scores for ${displayDate}`;
+    document.getElementById('detail-title').innerText = "Tournament Standings";
+    document.getElementById('detail-date').innerText = selectedDate === "all" ? "All Recorded Season Events" : `Scores for ${displayDate}`;
     document.getElementById('report-club-name').innerText = (typeof club !== 'undefined' && club.name) ? club.name : "Golf Pro Manager";
 
-    // 3. Handle the Color Logo setup safely
+    // 2. Safely load your logo
     const logoImg = document.getElementById('report-logo-img');
     if (typeof club !== 'undefined' && club.logo) {
         logoImg.src = club.logo;
@@ -1252,32 +1261,34 @@ function exportMasterReport() {
         logoImg.style.display = "none";
     }
 
-    // 4. Look at the active tab on your screen (Teams, Doubles, KO, etc.) 
-    // and copy its tables right into the print view area
-    let compiledContent = "";
+    // 3. Grab the active layout currently visible on your screen
     const activeTab = document.querySelector('.tab-content:not(.hidden)');
+    let activeContent = "";
     
     if (activeTab) {
-        // Grab any tables, lists, or headers visible in your active tab
-        const tables = activeTab.querySelectorAll('table, .matrix-container, .bracket-container');
-        tables.forEach(table => {
-            compiledContent += table.outerHTML + "<br>";
-        });
+        // Clone the content so we don't destroy your active screen layout
+        const contentClone = activeTab.cloneNode(true);
+        
+        // Remove the action buttons/menus from printing inside the content card
+        contentClone.querySelectorAll('button, select, label, .no-print').forEach(el => el.remove());
+        activeContent = contentClone.innerHTML;
     }
 
-    // If we successfully found your competition data, display it in the print box
-    if (compiledContent) {
-        document.getElementById('detail-results').parentElement.innerHTML = compiledContent;
+    // 4. Inject your active games/competitions straight into the printable report card
+    if (activeContent) {
+        document.getElementById('detail-results').innerHTML = activeContent;
+    } else {
+        document.getElementById('detail-results').innerHTML = "<p style='text-align:center; padding:20px;'>No active competition data selected.</p>";
     }
 
-    // 5. Switch views over to the clean printable detail card frame
+    // 5. Flip the app view to reveal the printable layout card frame
     document.getElementById('dash-main-view').classList.add('hidden');
     document.getElementById('dash-detail').classList.remove('hidden');
 
-    // 6. Give the browser a brief moment to draw the tables, then open print window
+    // 6. Pull up the printer modal cleanly
     setTimeout(() => {
         window.print();
-    }, 400);
+    }, 500);
 }
 function viewDetail(date, courseId) {
     const filtered = rounds.filter(r => r.date === date && String(r.courseId) === String(courseId)).sort((a,b) => {
