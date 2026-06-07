@@ -84,15 +84,51 @@
         .report-table th { background: #f0f0f0; border: 1px solid #ddd; padding: 8px; text-align: left; }
         .report-table td { border: 1px solid #ddd; padding: 8px; }
 
-        @media print {
-            .nav, .btn, .btn-outline, .btn-del, .selector-list, label, #db-step1, input, hr, .btn-save-comp, .header, #past-tourney-list-card, #recent-rounds-card { display: none !important; }
-            body { background: white; }
-            .container { padding: 0; max-width: 100%; }
-            .card { box-shadow: none; border: none; }
-            #dash-detail { display: block !important; position: absolute; top: 0; width: 100%; }
-            .hidden { display: none !important; }
-            #dash-detail.hidden { display: block !important; }
-        }
+@media print {
+    /* Force color backgrounds and images/logos to print in full vibrant color */
+    html, body {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    #dash-detail, #report-content, .card {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        height: auto !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 10px !important;
+    }
+
+    /* Keep the logo completely visible and in its natural colors */
+    .report-logo {
+        display: block !important;
+        max-height: 80px !important;
+        margin: 0 auto 15px auto !important;
+    }
+
+    /* Hide the non-printable interface clutter */
+    nav, .navbar, .tab-header, button, .no-print, .btn-outline, .btn-share, #btn-lock-round {
+        display: none !important;
+    }
+
+    /* Clean up the master table layout */
+    .report-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin-top: 20px !important;
+    }
+    .report-table th {
+        background-color: #2e7d32 !important; /* Premium golf green header row */
+        color: white !important;
+        padding: 10px !important;
+    }
+    .report-table td {
+        padding: 10px !important;
+        border-bottom: 1px solid #ddd !important;
+    }
+}
 /* --- GAMEBOOK 6-COLUMN COMPACT MATRIX STYLES --- */
 .gb-matrix-container {
     background: #ffffff;
@@ -1166,42 +1202,59 @@ function calculateLiveHolePoints(holeNum, par, si, hc) {
             </div>`).join('');
     }
 function exportMasterReport() {
-    // 1. Check if we have any round data saved in history
     if (!rounds || rounds.length === 0) {
         alert("No tournament records found to generate a master report.");
         return;
     }
 
-    // 2. Make sure the detail box screen is forced visible
+    // 1. Handle the logo presentation
+    const logoImg = document.getElementById('report-logo-img');
+    // If you have a custom club logo uploaded or saved, show it in color
+    if (club && club.logo) {
+        logoImg.src = club.logo;
+        logoImg.style.display = "block";
+    } else {
+        logoImg.style.display = "none";
+    }
+
+    // 2. Open up the view containers
     document.getElementById('dash-main-view').classList.add('hidden');
     document.getElementById('dash-detail').classList.remove('hidden');
 
-    // 3. Set up the header details for the master printout
+    // 3. Set titles
     document.getElementById('detail-title').innerText = "Master Championship Standings";
     document.getElementById('detail-date').innerText = "All Recorded Season Events";
-    document.getElementById('report-club-name').innerText = club.name || "Golf Pro Manager";
+    document.getElementById('report-club-name').innerText = (club && club.name) ? club.name : "Golf Pro Manager";
 
-    // 4. Sort every round in history by highest points score
+    // 4. Sort all historical events together cleanly by score points
     const masterSorted = [...rounds].sort((a, b) => (b.points || 0) - (a.points || 0));
 
-    // 5. Build and insert the text rows directly into your table view
+    // 5. Render every single row into the printable table matrix
     document.getElementById('detail-results').innerHTML = masterSorted.map((r, i) => {
         let awards = "";
-        if (r.longDrive) awards += "🚀 ";
-        if (r.nearPin) awards += "🎯 ";
+        if (r.longDrive) awards += "🚀 Long Drive ";
+        if (r.nearPin) awards += "🎯 Near Pin ";
         
+        // Format names safely
+        const pName = r.playerName || "Unknown Player";
+        const cName = r.courseName || "Unknown Course";
+        const rDate = r.date ? formatDateDisplay(r.date) : "";
+
         return `<tr>
-            <td>${i + 1}</td>
-            <td><b>${r.playerName}</b><br><small style="color:#666;">${r.courseName} (${formatDateDisplay(r.date)})</small></td>
-            <td style="color: ${getScoreColor(r.points)}; font-weight: bold;">${r.points || 0}</td>
-            <td style="font-size:1.2em;">${awards || '-'}</td>
+            <td style="text-align: center; font-weight: bold;">${i + 1}</td>
+            <td>
+                <span style="font-size: 15px; font-weight: bold; color: #333;">${pName}</span><br>
+                <small style="color:#666;">${cName} — ${rDate}</small>
+            </td>
+            <td style="text-align: center; font-weight: bold; color: #2e7d32; font-size: 15px;">${r.points || 0} pts</td>
+            <td style="font-size: 13px; color: #e67e22;">${awards || '-'}</td>
         </tr>`;
     }).join('');
 
-    // 6. Give the browser a brief split-second to render the data, then open the print window
+    // 6. Give the browser an extra moment to render images before pulling up the printer box
     setTimeout(() => {
         window.print();
-    }, 300);
+    }, 400);
 }
 function viewDetail(date, courseId) {
     const filtered = rounds.filter(r => r.date === date && String(r.courseId) === String(courseId)).sort((a,b) => {
