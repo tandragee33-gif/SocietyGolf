@@ -85,55 +85,37 @@
         .report-table td { border: 1px solid #ddd; padding: 8px; }
 
 @media print {
+    /* 1. Keep colors vibrant */
     html, body {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         background: #f5f5f5 !important;
-        padding: 0 !important;
-        margin: 0 !important;
     }
 
-    /* Force the main card frame and its sleek grey border outline to stay visible */
-    #dash-detail, .card {
+    /* 2. Wrap a solid grey border around the printed page */
+    .tab-content, .card, #dash-main-view, #dash-detail {
         display: block !important;
         visibility: visible !important;
-        opacity: 1 !important;
-        width: 95% !important;
-        margin: 20px auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 10px auto !important;
         padding: 20px !important;
-        background: #ffffff !important;
-        border: 2px solid #ddd !important; /* Thick grey border surrounding full page */
+        border: 2px solid #ddd !important; 
         border-radius: 8px !important;
+        background: #ffffff !important;
         box-shadow: none !important;
     }
 
-    .print-section-title {
-        color: #2e7d32 !important;
-        border-bottom: 2px solid #2e7d32 !important;
-        padding-bottom: 5px !important;
-        margin-top: 20px !important;
-        font-size: 16px !important;
-    }
-
-    nav, .navbar, .tab-header, button, .no-print, .btn-outline, .btn-share {
+    /* 3. Hide the top menus and buttons on paper */
+    nav, .navbar, .tab-header, button, .no-print, .btn-share, .btn-outline, select, label {
         display: none !important;
     }
 
-    .report-table {
-        width: 100% !important;
-        border-collapse: collapse !important;
-        margin-bottom: 15px !important;
-    }
-    
-    .report-table th {
-        background-color: #2e7d32 !important;
-        color: white !important;
-        padding: 8px !important;
-    }
-
-    .report-table td {
-        padding: 8px !important;
-        border-bottom: 1px solid #ddd !important;
+    /* 4. Keep the logo centered */
+    .report-logo, img {
+        display: block !important;
+        max-height: 80px !important;
+        margin: 0 auto 15px auto !important;
     }
 }
 /* --- GAMEBOOK 6-COLUMN COMPACT MATRIX STYLES --- */
@@ -267,8 +249,8 @@
     <select id="report-date-select" style="padding: 8px; border-radius: 6px; border: 1px solid #bbb; font-size: 14px;">
         <option value="all">-- All Events (Full Season) --</option>
     </select>
-    <button class="btn-share" onclick="exportMasterReport()" style="background: #000; padding: 10px; margin: 0; color: white; border-radius: 6px; cursor: pointer;">
-        Print Selected Report
+<button class="btn-share" onclick="window.print()" style="background: #000; padding: 10px; margin: 0; color: white; border-radius: 6px; cursor: pointer;">
+        Print Current Screen
     </button>
 </div>
             </div>
