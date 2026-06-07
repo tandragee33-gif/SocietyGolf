@@ -978,6 +978,8 @@ function setupInputGrids() {
         document.getElementById(id).classList.remove('hidden');
         document.getElementById('btn-' + id.split('-')[1]).classList.add('active');
         
+populateReportDates();
+
         loadData();
         if(id === 'tab-team') renderTeamSelector();
         if(id === 'tab-setup') renderAdmin();
@@ -1207,6 +1209,26 @@ function calculateLiveHolePoints(holeNum, par, si, hc) {
                 <span>${c.count} Players ></span>
             </div>`).join('');
     }
+function populateReportDates() {
+    const select = document.getElementById('report-date-select');
+    if (!select || !rounds) return;
+    
+    // Clear the box first so it doesn't double-paste dates
+    select.innerHTML = '<option value="all">-- All Events (Full Season) --</option>';
+    
+    // Grab all unique dates from your tournament history records
+    const uniqueDates = [...new Set(rounds.map(r => r.date))].sort((a, b) => new Date(b) - new Date(a));
+    
+    // Put each tournament date into your dropdown list
+    uniqueDates.forEach(date => {
+        if (!date) return;
+        const opt = document.createElement('option');
+        opt.value = date;
+        // Checks if you have a date formatter setup, otherwise displays the raw date
+        opt.innerText = typeof formatDateDisplay === 'function' ? formatDateDisplay(date) : date;
+        select.appendChild(opt);
+    });
+}
 function exportMasterReport() {
     if (!rounds || rounds.length === 0) {
         alert("No tournament records found to generate a master report.");
