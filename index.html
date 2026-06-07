@@ -85,37 +85,52 @@
         .report-table td { border: 1px solid #ddd; padding: 8px; }
 
 @media print {
-    /* 1. Keep colors vibrant */
+    /* 1. Force the browser to render your logo and green headers in full color */
     html, body {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        background: #f5f5f5 !important;
+        background: #ffffff !important;
     }
 
-    /* 2. Wrap a solid grey border around the printed page */
-    .tab-content, .card, #dash-main-view, #dash-detail {
+    /* 2. Lock a premium grey border outline strictly around your final report sheet */
+    #dash-detail {
         display: block !important;
         visibility: visible !important;
         width: 100% !important;
-        max-width: 100% !important;
-        margin: 10px auto !important;
+        margin: 0 auto !important;
         padding: 20px !important;
-        border: 2px solid #ddd !important; 
+        border: 2px solid #ddd !important; /* The solid grey border surrounding the page */
         border-radius: 8px !important;
-        background: #ffffff !important;
         box-shadow: none !important;
     }
 
-    /* 3. Hide the top menus and buttons on paper */
-    nav, .navbar, .tab-header, button, .no-print, .btn-share, .btn-outline, select, label {
-        display: none !important;
-    }
-
-    /* 4. Keep the logo centered */
-    .report-logo, img {
+    /* 3. Center and show your custom club logo */
+    #report-logo-img, .report-logo {
         display: block !important;
         max-height: 80px !important;
         margin: 0 auto 15px auto !important;
+    }
+
+    /* 4. Hide all background screen elements, dropdowns, and menu buttons */
+    nav, .navbar, .tab-header, button, .no-print, .btn-share, .btn-outline, select, label, #dash-main-view {
+        display: none !important;
+    }
+
+    /* 5. Clean up your data tables so they span beautifully across the paper width */
+    table, .report-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin-top: 15px !important;
+    }
+    th {
+        background-color: #2e7d32 !important; /* Clean tournament-green column headers */
+        color: white !important;
+        padding: 8px !important;
+    }
+    td {
+        padding: 8px !important;
+        border-bottom: 1px solid #ddd !important;
+        color: #333 !important;
     }
 }
 /* --- GAMEBOOK 6-COLUMN COMPACT MATRIX STYLES --- */
@@ -1219,92 +1234,47 @@ function populateReportDates() {
     });
 }
 function exportMasterReport() {
-    if (!rounds || rounds.length === 0) {
-        alert("No tournament records found to generate a report.");
-        return;
-    }
-
+    // 1. Get the date chosen from your selector
     const selectedDate = document.getElementById('report-date-select').value;
-    let reportSubtitle = "All Recorded Season Events";
-    let htmlContent = "";
+    const displayDate = typeof formatDateDisplay === 'function' ? formatDateDisplay(selectedDate) : selectedDate;
+    
+    // 2. Set up the header texts dynamically
+    document.getElementById('detail-title').innerText = selectedDate === "all" ? "Master Championship Standings" : "Tournament Leaderboard";
+    document.getElementById('detail-date').innerText = selectedDate === "all" ? "All Recorded Season Events" : `Tournament Scores for ${displayDate}`;
+    document.getElementById('report-club-name').innerText = (typeof club !== 'undefined' && club.name) ? club.name : "Golf Pro Manager";
 
-    // --- SECTION 1: INDIVIDUAL STROKE PLAY / POINTS ---
-    let filteredRounds = [...rounds];
-    if (selectedDate !== "all") {
-        filteredRounds = rounds.filter(r => r.date === selectedDate);
-        const displayDate = typeof formatDateDisplay === 'function' ? formatDateDisplay(selectedDate) : selectedDate;
-        reportSubtitle = `Tournament Summary — ${displayDate}`;
-    }
-
-    if (filteredRounds.length > 0) {
-        const sortedRounds = filteredRounds.sort((a, b) => (b.points || 0) - (a.points || 0));
-        htmlContent += `
-            <h4 class="print-section-title">🏆 Individual Leaderboard</h4>
-            <table class="report-table">
-                <thead><tr><th>Pos</th><th>Player</th><th>Points</th><th>Awards</th></tr></thead>
-                <tbody>
-                    ${sortedRounds.map((r, i) => {
-                        let awards = "";
-                        if (r.longDrive) awards += "🚀 Long Drive ";
-                        if (r.nearPin) awards += "🎯 Near Pin ";
-                        return `<tr>
-                            <td style="text-align:center; font-weight:bold;">${i + 1}</td>
-                            <td><b>${r.playerName || 'Unknown'}</b><br><small style="color:#666;">${r.courseName || ''}</small></td>
-                            <td style="text-align:center; font-weight:bold; color:#2e7d32;">${r.points || 0} pts</td>
-                            <td style="color:#e67e22; font-size:13px;">${awards || '-'}</td>
-                        </tr>`;
-                    }).join('')}
-                </tbody>
-            </table>
-        `;
-    }
-
-    // --- SECTION 2: TEAM / DOUBLES / KNOCKOUTS ---
-    // If you have team or knockout data variables saved (like teams, doubles, knockouts), we display them here
-    if (typeof teams !== 'undefined' && teams.length > 0) {
-        let displayTeams = [...teams];
-        if (selectedDate !== "all") displayTeams = teams.filter(t => t.date === selectedDate);
-        
-        if (displayTeams.length > 0) {
-            htmlContent += `
-                <h4 class="print-section-title" style="margin-top:25px;">👥 Team & Doubles Results</h4>
-                <table class="report-table">
-                    <thead><tr><th>Team / Pair</th><th>Score / Status</th></tr></thead>
-                    <tbody>
-                        ${displayTeams.map(t => `<tr>
-                            <td><b>${t.name || t.players || 'Unnamed Team'}</b></td>
-                            <td style="text-align:center; font-weight:bold;">${t.score || t.points || '-'}</td>
-                        </tr>`).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
-    }
-
-    // fallback placeholder if no matches found for separate events on that date
-    if (!htmlContent) {
-        htmlContent = "<p style='text-align:center; padding: 20px; color:#666;'>No data points recorded for this date layout.</p>";
-    }
-
-    // --- SECTION 3: LOADING INTO CONTAINER ---
+    // 3. Handle the Color Logo setup safely
     const logoImg = document.getElementById('report-logo-img');
-    if (club && club.logo) {
+    if (typeof club !== 'undefined' && club.logo) {
         logoImg.src = club.logo;
         logoImg.style.display = "block";
     } else {
         logoImg.style.display = "none";
     }
 
+    // 4. Look at the active tab on your screen (Teams, Doubles, KO, etc.) 
+    // and copy its tables right into the print view area
+    let compiledContent = "";
+    const activeTab = document.querySelector('.tab-content:not(.hidden)');
+    
+    if (activeTab) {
+        // Grab any tables, lists, or headers visible in your active tab
+        const tables = activeTab.querySelectorAll('table, .matrix-container, .bracket-container');
+        tables.forEach(table => {
+            compiledContent += table.outerHTML + "<br>";
+        });
+    }
+
+    // If we successfully found your competition data, display it in the print box
+    if (compiledContent) {
+        document.getElementById('detail-results').parentElement.innerHTML = compiledContent;
+    }
+
+    // 5. Switch views over to the clean printable detail card frame
     document.getElementById('dash-main-view').classList.add('hidden');
     document.getElementById('dash-detail').classList.remove('hidden');
 
-    document.getElementById('detail-title').innerText = selectedDate === "all" ? "Master Championship Standings" : "Daily Event Report";
-    document.getElementById('detail-date').innerText = reportSubtitle;
-    document.getElementById('report-club-name').innerText = (club && club.name) ? club.name : "Golf Pro Manager";
-
-    // Inject all compiled sections safely directly into the layout box
-    document.getElementById('detail-results').parentElement.innerHTML = htmlContent;
-
+    // 6. Give the browser a brief moment to draw the tables, then open print window
     setTimeout(() => {
         window.print();
     }, 400);
