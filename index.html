@@ -215,6 +215,33 @@ color: white; font-size: 10px; font-weight: bold; cursor: pointer; text-transfor
 .gb-sum-item span {
     color: #0d8a43;
 }
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+.report-table th {
+    background: #222;
+    color: white;
+    padding: 10px;
+    text-align: left;
+    font-weight: bold;
+}
+
+.report-table td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+}
+
+.report-table tr:nth-child(even) {
+    background: #f5f5f5;
+}
+
+.report-table tr:hover {
+    background: #e8f0ff;
+}
     </style>
 </head>
 <body onload="init()">
@@ -262,6 +289,29 @@ color: white; font-size: 10px; font-weight: bold; cursor: pointer; text-transfor
 </button>
                 <hr>
             </div>
+<div style="text-align:center; margin-bottom:25px;">
+    <img id="mr-logo" src="" style="max-width:120px; display:none; margin-bottom:10px;">
+    <h1 id="mr-club-name" style="margin:0; font-size:26px;"></h1>
+    <h2 style="margin:5px 0 0 0; font-weight:normal; color:#444;">Master Event Report</h2>
+</div>
+
+<div style="display:flex; gap:20px; justify-content:center; margin-bottom:20px;">
+    <div>
+        <label>Start Date:</label><br>
+        <input type="date" id="mrStart">
+    </div>
+
+    <div>
+        <label>End Date:</label><br>
+        <input type="date" id="mrEnd">
+    </div>
+</div>
+
+<div style="text-align:center;">
+    <button class="btn" onclick="generateMasterReport()">Generate Report</button>
+</div>
+
+<div id="mr-output" style="margin-top:20px;"></div>
             
             <div id="report-content">
                 <div class="report-header">
@@ -660,8 +710,8 @@ function generateMasterReport() {
                         <td>${c.type}</td>
                         <td>${c.winner || '-'}</td>
                         <td>${c.points || '-'}</td>
-                        <td>${c.longDrive === "Yes" ? "🏆 Yes" : "-"}</td>
-                        <td>${c.nearPin === "Yes" ? "🎯 Yes" : "-"}</td>
+                        <td>${c.longDrive === "Yes" ? "🏆" : "-"}</td>
+                        <td>${c.nearPin === "Yes" ? "🎯" : "-"}</td>
                         <td>${c.detail || ''}</td>
                     </tr>
                 `).join('')}
