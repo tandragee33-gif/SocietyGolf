@@ -1213,60 +1213,52 @@ function exportMasterReport() {
     }
 
     const dateInput = selectedDate === 'all' ? "All" : displayDate;
-    const logoHtml = club.logo ? `<img src="${club.logo}" class="report-logo" style="max-height:60px; margin-bottom:10px;">` : '';
+    const logoHtml = club.logo ? `<img src="${club.logo}" style="max-height:60px; margin-bottom:10px;">` : '';
 
-    let reportContent = `<html><head><title>Tournament Master Report</title>
-    <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-    th { background-color: #f2f2f2; }
-    .section-title { font-size: 18px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; background: #27ae60; color: white; padding: 5px; }
-    .col-rank { width: 80px; text-align: center; }
-    .col-pts { width: 80px; text-align: center; }
-    .h-num { background: #f9f9f9; font-weight: bold; width: 70px; }
-    @media print { body { padding: 0; } .section-title { -webkit-print-color-adjust: exact; } }
-    </style></head><body>
-    <div class="header">
-    ${logoHtml}
-    <h1 style="margin:0;">${club.name}</h1>
-    <h3 style="margin:5px 0; color:#666;">Tournament Master Report</h3>
-    <p>Date: ${dateInput}</p>
-    </div>`;
+    // --- BUILD THE PRINT LAYOUT WITHOUT OPENING WINDOW.OPEN ---
+    let reportContent = `
+    <div id="master-report-print-area">
+        <div style="text-align: center; margin-bottom: 20px;">
+            ${logoHtml}
+            <h1 style="margin:0; font-family: Arial, sans-serif;">${club.name}</h1>
+            <h3 style="margin:5px 0; color:#666; font-family: Arial, sans-serif;">Tournament Master Report</h3>
+            <p style="font-family: Arial, sans-serif;">Date: ${dateInput}</p>
+        </div>`;
 
-    // 1. INDIVIDUAL LEADERBOARD
+    // 1. INDIVIDUAL LEADERBOARD (FULL RESULTS, ALL PLAYERS, NO TROPHY/COLOR BIAS)
     if (dailyRounds.length > 0) {
         dailyRounds.sort((a, b) => {
             if (b.points !== a.points) return b.points - a.points;
             return getTieBreaker(b.pointsArray) - getTieBreaker(a.pointsArray);
         });
 
-        reportContent += `<div class="section-title">Individual Leaderboard</div>
-        <table>
+        reportContent += `
+        <div style="font-size: 18px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; background: #27ae60; color: white; padding: 5px; font-family: Arial, sans-serif;">Individual Leaderboard</div>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-family: Arial, sans-serif;">
         <thead>
-        <tr>
-        <th class="col-rank">Position</th>
-        <th>Player Name</th>
-        <th class="col-pts">Points</th>
-        <th>Awards</th>
-        </tr>
+            <tr>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #f2f2f2; width: 80px;">Position</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f2f2f2;">Player Name</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #f2f2f2; width: 80px;">Points</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f2f2f2;">Awards</th>
+            </tr>
         </thead>
         <tbody>` + 
         dailyRounds.map((r, i) => {
             let awards = "";
-            if (r.longDrive) awards += "🚀";
-            if (r.nearPin) awards += "🎯";
+            if (r.longDrive) awards += "🚀 ";
+            if (r.nearPin) awards += "🎯 ";
             return `
             <tr>
-            <td class="col-rank">${i+1}</td>
-            <td>${r.playerName}</td>
-            <td class="col-pts">${r.points}</td>
-            <td style="font-size:1.2em;">${awards}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${i+1}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${r.playerName}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">${r.points}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; font-size:1.2em;">${awards || '-'}</td>
             </tr>`;
         }).join('') + `</tbody></table>`;
     }
 
-    // 2. SEGMENTED EVENT RESULTS
+    // 2. SEGMENTED EVENT RESULTS (ALL OTHER RESULTS INCLUDED)
     if (dailyComps.length > 0) {
         const groups = dailyComps.reduce((acc, comp) => {
             if (!acc[comp.type]) acc[comp.type] = [];
@@ -1275,53 +1267,86 @@ function exportMasterReport() {
         }, {});
 
         for (const type in groups) {
-            reportContent += `<div class="section-title">${type} Results</div>
-            <table>
+            reportContent += `
+            <div style="font-size: 18px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; background: #27ae60; color: white; padding: 5px; font-family: Arial, sans-serif;">${type} Results</div>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-family: Arial, sans-serif;">
             <thead>
-            <tr><th class="col-rank">Position</th><th>Winner / Members</th><th class="col-pts">Result</th></tr>
+                <tr>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #f2f2f2; width: 80px;">Position</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f2f2f2;">Winner / Members</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #f2f2f2; width: 80px;">Result</th>
+                </tr>
             </thead>
             <tbody>` + 
             groups[type].map((c, idx) => `
             <tr>
-            <td class="col-rank">${idx === 0 ? 'WINNER' : idx + 1}</td>
-            <td>${c.winner}</td>
-            <td class="col-pts">${c.detail}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx === 0 ? 'WINNER' : idx + 1}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${c.winner}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">${c.detail}</td>
             </tr>`).join('') + `</tbody></table>`;
         }
 
+        // CHAMPIONS SCORECARD
         const teamComps = dailyComps.filter(c => c.type === 'Team Event' && c.breakdown);
         if (teamComps.length > 0) {
             const winningTeam = teamComps[0];
             const holesData = winningTeam.breakdown;
             const names = winningTeam.playerNames || [];
 
-            reportContent += `<div style="page-break-inside:avoid; margin-top:30px;">
-            <div class="section-title">CHAMPIONS SCORECARD: ${winningTeam.winner.split(':')[0].toUpperCase()}</div>
-            <table>
-            <thead>
-            <tr>
-            <th>Hole</th>
-            ${names.map(n => `<th>${n.toUpperCase()}</th>`).join('')}
-            <th>Counted</th>
-            </tr>
-            </thead>
-            <tbody>` + 
-            holesData.map(h => `
-            <tr>
-            <td class="h-num">Hole ${h.hole}${ (h.hole==9||h.hole==18) ? '*' : '' }</td>
-            ${h.all.map(p => `<td>${p}</td>`).join('')}
-            <td style="background:#f2f2f2; font-weight:bold;">${h.counted}</td>
-            </tr>`).join('') + `</tbody></table>
-            <p style="font-size:11px; font-style:italic;">* Holes 9 & 18: All scores count. Other holes: Best 2 scores count.</p>
+            reportContent += `
+            <div style="page-break-inside:avoid; margin-top:30px; font-family: Arial, sans-serif;">
+                <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px; background: #27ae60; color: white; padding: 5px;">CHAMPIONS SCORECARD: ${winningTeam.winner.split(':')[0].toUpperCase()}</div>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; text-align: center;">
+                <thead>
+                    <tr>
+                        <th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; text-align: left; width: 90px;">Hole</th>
+                        ${names.map(n => `<th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2;">${n.toUpperCase()}</th>`).join('')}
+                        <th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; width: 90px;">Counted</th>
+                    </tr>
+                </thead>
+                <tbody>` + 
+                holesData.map(h => `
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: left; background: #f9f9f9; font-weight: bold;">Hole ${h.hole}${ (h.hole==9||h.hole==18) ? '*' : '' }</td>
+                    ${h.all.map(p => `<td style="border: 1px solid #ddd; padding: 8px;">${p}</td>`).join('')}
+                    <td style="border: 1px solid #ddd; padding: 8px; background:#f2f2f2; font-weight:bold;">${h.counted}</td>
+                </tr>`).join('') + `</tbody></table>
+                <p style="font-size:11px; font-style:italic;">* Holes 9 & 18: All scores count. Other holes: Best 2 scores count.</p>
             </div>`;
         }
     }
 
-    reportContent += `</body></html>`;
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(reportContent);
-    printWindow.document.close();
-    setTimeout(() => { printWindow.print(); }, 600);
+    reportContent += `</div>`;
+
+    // --- INJECT INLINE, TRIGGER SYSTEM PRINT, AND CLEAN UP IMMEDIATELY ---
+    const tempContainer = document.createElement('div');
+    tempContainer.id = "temp-print-injection";
+    tempContainer.innerHTML = reportContent;
+    
+    // Add temporary hidden style sheets to isolate the print layout cleanly
+    const styleEl = document.createElement('style');
+    styleEl.innerHTML = `
+        @media screen { #temp-print-injection { display: none !important; } }
+        @media print { 
+            body > *:not(#temp-print-injection) { display: none !important; } 
+            #temp-print-injection, #temp-print-injection * { display: block !important; }
+            table { display: table !important; }
+            thead { display: table-header-group !important; }
+            tbody { display: table-row-group !important; }
+            tr { display: table-row !important; }
+            th, td { display: table-cell !important; }
+        }
+    `;
+    
+    document.body.appendChild(styleEl);
+    document.body.appendChild(tempContainer);
+    
+    // Fire your system's print overlay natively right here
+    window.print();
+    
+    // Destroy the extra markup instantly when printer overlay closes
+    tempContainer.remove();
+    styleEl.remove();
 }
 function viewDetail(date, courseId) {
     const filtered = rounds.filter(r => r.date === date && String(r.courseId) === String(courseId)).sort((a,b) => {
