@@ -85,81 +85,7 @@
         .report-table td { border: 1px solid #ddd; padding: 8px; }
 
 @media print {
-    /* Set page setting rules */
-    @page {
-        size: portrait;
-        margin: 15mm 10mm 15mm 10mm;
-    }
-
-    html, body {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        background: #ffffff !important;
-        font-family: 'Helvetica Neue', Arial, sans-serif !important;
-        font-size: 13px !important;
-    }
-
-    /* Wrap a premium solid grey border completely around the entire document page container */
-    #dash-detail {
-        display: block !important;
-        visibility: visible !important;
-        width: 100% !important;
-        margin: 0 auto !important;
-        padding: 25px !important;
-        border: 2px solid #bbb !important; /* Elegant grey border frame */
-        border-radius: 8px !important;
-        box-shadow: none !important;
-        box-sizing: border-box !important;
-    }
-
-    /* Keep club logo perfectly centered at the very top */
-    #report-logo-img, .report-logo {
-        display: block !important;
-        max-height: 75px !important;
-        margin: 0 auto 10px auto !important;
-    }
-
-    .print-section-title {
-        color: #1b5e20 !important;
-        font-size: 14px !important;
-        font-weight: bold !important;
-        border-bottom: 2px solid #2e7d32 !important;
-        margin: 20px 0 8px 0 !important;
-        padding-bottom: 3px !important;
-    }
-
-    /* Clean up data tables to look completely uniform and tight */
-    .report-table {
-        width: 100% !important;
-        border-collapse: collapse !important;
-        margin-bottom: 10px !important;
-    }
-    .report-table th {
-        background-color: #2e7d32 !important; /* Premium golf green rows */
-        color: white !important;
-        padding: 6px 8px !important;
-        font-weight: bold !important;
-        border: 1px solid #ddd !important;
-        font-size: 12px !important;
-    }
-    .report-table td {
-        padding: 6px 8px !important;
-        border-bottom: 1px solid #eee !important;
-        border-left: 1px solid #eee !important;
-        border-right: 1px solid #eee !important;
-    }
-
-    /* Format scorecard table horizontally so it fits seamlessly on one page */
-    .layout-scorecard th, .layout-scorecard td {
-        padding: 4px !important;
-        text-align: center !important;
-        font-size: 11px !important;
-    }
-
-    /* Hide background screen tabs, buttons, and navigation options */
-    nav, .navbar, .tab-header, button, .no-print, .btn-share, .btn-outline, select, label, #dash-main-view {
-        display: none !important;
-    }
+    /* The printing window handles its own layout styling rules independently */
 }
 /* --- GAMEBOOK 6-COLUMN COMPACT MATRIX STYLES --- */
 .gb-matrix-container {
@@ -1266,9 +1192,8 @@ function exportMasterReport() {
 
     const selectedDate = document.getElementById('report-date-select').value;
     let reportSubtitle = "All Recorded Season Events";
-    let htmlContent = "";
-
-    // Filter rounds by date
+    
+    // 1. Filter rounds by selected date
     let filteredRounds = [...rounds];
     if (selectedDate !== "all") {
         filteredRounds = rounds.filter(r => r.date === selectedDate);
@@ -1276,10 +1201,21 @@ function exportMasterReport() {
         reportSubtitle = `Tournament Summary — ${displayDate}`;
     }
 
+    // 2. Build the Document Contents dynamically
+    let printHTML = `
+        <div class="master-print-container">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="${(typeof club !== 'undefined' && club.logo) ? club.logo : ''}" style="max-height: 75px; display: block; margin: 0 auto 10px auto; max-width: 200px;" alt="Club Logo">
+                <h2 style="margin: 0; font-size: 22px; font-weight: bold; color: #1b5e20;">Punters Golf Society</h2>
+                <h3 style="margin: 5px 0 0 0; font-size: 16px; font-weight: bold; color: #333;">Tournament Master Report</h3>
+                <p style="margin: 3px 0 0 0; font-size: 13px; color: #666; font-weight: bold;">${reportSubtitle}</p>
+            </div>
+    `;
+
     // --- 1. INDIVIDUAL LEADERBOARD ---
     if (filteredRounds.length > 0) {
         const sortedRounds = filteredRounds.sort((a, b) => (b.points || 0) - (a.points || 0));
-        htmlContent += `
+        printHTML += `
             <h4 class="print-section-title">🏆 INDIVIDUAL LEADERBOARD</h4>
             <table class="report-table">
                 <thead><tr><th>Pos</th><th>Player Name</th><th>Points</th><th>Awards</th></tr></thead>
@@ -1289,10 +1225,10 @@ function exportMasterReport() {
                         if (r.longDrive) awards += "🚀 LD ";
                         if (r.nearPin) awards += "🎯 NP ";
                         return `<tr>
-                            <td style="text-align:center; font-weight:bold;">${i + 1}</td>
+                            <td style="text-align:center; font-weight:bold; width: 10%;">${i + 1}</td>
                             <td><b>${r.playerName || 'Unknown'}</b></td>
-                            <td style="text-align:center; font-weight:bold; color:#2e7d32;">${r.points || 0}</td>
-                            <td style="color:#e67e22; font-weight:bold; text-align:center;">${awards || '-'}</td>
+                            <td style="text-align:center; font-weight:bold; color:#2e7d32; width: 20%;">${r.points || 0}</td>
+                            <td style="color:#e67e22; font-weight:bold; text-align:center; width: 20%;">${awards || '-'}</td>
                         </tr>`;
                     }).join('')}
                 </tbody>
@@ -1305,15 +1241,15 @@ function exportMasterReport() {
         let displayTeams = [...teams];
         if (selectedDate !== "all") displayTeams = teams.filter(t => t.date === selectedDate);
         if (displayTeams.length > 0) {
-            htmlContent += `
-                <h4 class="print-section-title" style="margin-top:25px;">👥 TEAM EVENT RESULTS</h4>
+            printHTML += `
+                <h4 class="print-section-title">👥 TEAM EVENT RESULTS</h4>
                 <table class="report-table">
                     <thead><tr><th>Position</th><th>Winner/Team Members</th><th>Result</th></tr></thead>
                     <tbody>
                         ${displayTeams.map((t, i) => `<tr>
-                            <td style="font-weight:bold; color:#e67e22;">${i === 0 ? 'WINNER' : i + 1}</td>
+                            <td style="font-weight:bold; color:#e67e22; width: 20%;">${i === 0 ? 'WINNER' : i + 1}</td>
                             <td><b>${t.name || t.players || 'Team'}</b></td>
-                            <td style="text-align:center; font-weight:bold;">${t.score || t.points || '-'} pts</td>
+                            <td style="text-align:center; font-weight:bold; width: 20%;">${t.score || t.points || '-'} pts</td>
                         </tr>`).join('')}
                     </tbody>
                 </table>
@@ -1326,15 +1262,15 @@ function exportMasterReport() {
         let displayDoubles = [...doubles];
         if (selectedDate !== "all") displayDoubles = doubles.filter(d => d.date === selectedDate);
         if (displayDoubles.length > 0) {
-            htmlContent += `
-                <h4 class="print-section-title" style="margin-top:25px;">🤝 DOUBLES COMBINED RESULTS</h4>
+            printHTML += `
+                <h4 class="print-section-title">🤝 DOUBLES COMBINED RESULTS</h4>
                 <table class="report-table">
                     <thead><tr><th>Position</th><th>Winner/Team Members</th><th>Result</th></tr></thead>
                     <tbody>
                         ${displayDoubles.map((d, i) => `<tr>
-                            <td style="font-weight:bold; color:#e67e22;">${i === 0 ? 'WINNER' : i + 1}</td>
+                            <td style="font-weight:bold; color:#e67e22; width: 20%;">${i === 0 ? 'WINNER' : i + 1}</td>
                             <td><b>${d.players || d.name}</b></td>
-                            <td style="text-align:center; font-weight:bold;">${d.score || d.points || '-'} pts</td>
+                            <td style="text-align:center; font-weight:bold; width: 20%;">${d.score || d.points || '-'} pts</td>
                         </tr>`).join('')}
                     </tbody>
                 </table>
@@ -1342,10 +1278,10 @@ function exportMasterReport() {
         }
     }
 
-    // --- 4. CHAMPIONS SCORECARD TABLE ---
+    // --- 4. CHAMPIONS SCORECARD: TEAM 4 ---
     if (typeof teams !== 'undefined' && teams.length > 0) {
-        htmlContent += `
-            <h4 class="print-section-title" style="margin-top:25px;">📊 CHAMPIONS SCORECARD: TEAM 4</h4>
+        printHTML += `
+            <h4 class="print-section-title">📊 CHAMPIONS SCORECARD: TEAM 4</h4>
             <table class="report-table layout-scorecard">
                 <thead>
                     <tr><th>HOLE</th><th>PROC</th><th>BONGO</th><th>TIGHT</th><th>SPROCKET</th><th>TOTAL</th></tr>
@@ -1375,27 +1311,51 @@ function exportMasterReport() {
         `;
     }
 
-    // --- RENDER LOGO AND LAUNCH ---
-    const logoImg = document.getElementById('report-logo-img');
-    if (typeof club !== 'undefined' && club.logo) {
-        logoImg.src = club.logo;
-        logoImg.style.display = "block";
-    } else {
-        logoImg.style.display = "none";
-    }
+    printHTML += `</div>`;
 
-    document.getElementById('dash-main-view').classList.add('hidden');
-    document.getElementById('dash-detail').classList.remove('hidden');
-
-    document.getElementById('detail-title').innerText = "Tournament Master Report";
-    document.getElementById('detail-date').innerText = reportSubtitle;
-    document.getElementById('report-club-name').innerText = "Punters Golf Society";
-
-    document.getElementById('detail-results').innerHTML = htmlContent;
-
-    setTimeout(() => {
-        window.print();
-    }, 500);
+    // 3. Open a clean temporary printing window to bypass screen bugs entirely
+    const printWindow = window.open('', '_blank', 'width=900,height=800');
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Tournament Master Report</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; background: #fff; color: #000; }
+                .master-print-container {
+                    border: 2px solid #777777;
+                    border-radius: 8px;
+                    padding: 25px;
+                    max-width: 100%;
+                    box-sizing: border-box;
+                }
+                .print-section-title {
+                    color: #1b5e20;
+                    font-size: 14px;
+                    font-weight: bold;
+                    border-bottom: 2px solid #2e7d32;
+                    margin: 25px 0 10px 0;
+                    padding-bottom: 3px;
+                    text-transform: uppercase;
+                }
+                .report-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+                .report-table th { background-color: #2e7d32; color: white; padding: 8px; font-weight: bold; border: 1px solid #ddd; font-size: 12px; text-align: left; }
+                .report-table td { padding: 8px; border: 1px solid #ddd; font-size: 13px; }
+                .layout-scorecard th, .layout-scorecard td { text-align: center; padding: 6px; }
+            </style>
+        </head>
+        <body>
+            ${printHTML}
+            <script>
+                // Run print when elements load, then close auxiliary window cleanly
+                window.onload = function() {
+                    window.print();
+                    setTimeout(function() { window.close(); }, 500);
+                };
+            <\/script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
 }
 function viewDetail(date, courseId) {
     const filtered = rounds.filter(r => r.date === date && String(r.courseId) === String(courseId)).sort((a,b) => {
