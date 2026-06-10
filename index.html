@@ -707,4 +707,343 @@
                 <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee;">
                     <label style="font-size: 12px; font-weight: bold;">Restore from Backup:</label>
                     <input type="file" id="restoreFile" accept=".json" style="padding: 5px;">
-                    <button class="btn-outline" style="width: 100%; color: var(--info); border-color: var(--info);" onclick="restoreData()">Upload & Restore
+                    <button class="btn-outline" style="width: 100%; color: var(--info); border-color: var(--info);" onclick="restoreData()">Upload & Restore</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Player Registry</h3>
+                <input type="hidden" id="editPlayerId">
+                <input type="text" id="pName" placeholder="Full Name">
+                <input type="number" id="pHC" placeholder="Handicap">
+                <button class="btn" onclick="savePlayer()">Save Player</button>
+                <div id="admin-players"></div>
+            </div>
+
+            <div class="card">
+                <h3>Golf Course API</h3>
+                <input type="password" id="golfApiKey" placeholder="Enter API Key">
+                <button class="btn" onclick="saveGolfApiKey()">Save API Key</button>
+                <hr>
+                <input type="text" id="courseSearch" placeholder="Search Course Name">
+                <button class="btn" onclick="searchCourse()">Search Course</button>
+                <div id="courseResults"></div>
+
+                <select id="teeSelector" style="display:none; margin-top:10px;">
+                    <option value="">Select Tee Box</option>
+                </select>
+                <button class="btn" id="loadTeeBtn" style="display:none;" onclick="loadSelectedTee()">Load Selected Tee</button>
+            </div>
+
+            <div class="card">
+                <h3>Course Registry</h3>
+                <input type="hidden" id="editCourseId">
+                <input type="text" id="cName" placeholder="Course Name">
+                <div class="score-grid" id="setup-pars"></div>
+                <div class="score-grid" id="setup-si"></div>
+                <button class="btn" onclick="saveCourse()">Save Course</button>
+                <div id="admin-courses"></div>
+            </div>
+
+            <button class="btn-del" style="width:100%" onclick="factoryReset()">Master Data Wipe</button>
+        </div>
+
+        <div id="master-report" class="hidden card">
+            <div class="no-print">
+                <button class="btn-outline" onclick="closeMasterReport()">← Back</button>
+                <button class="btn-share" onclick="window.print()">Print / PDF</button>
+                <hr>
+            </div>
+            <div class="report-header" style="text-align:center; margin-bottom:20px;">
+                <img id="mr-logo" src="" style="max-width:120px; display:none; margin-bottom:10px;">
+                <h2 id="mr-club-name" style="margin:0; font-size:22px;"></h2>
+                <h3 style="margin:5px 0 20px 0; color:#555;">Master Event Report</h3>
+            </div>
+            <div style="display:flex; gap:20px; justify-content:center; margin-bottom:20px;">
+                <div>
+                    <label>Start Date:</label><br>
+                    <input type="date" id="mrStart">
+                </div>
+                <div>
+                    <label>End Date:</label><br>
+                    <input type="date" id="mrEnd">
+                </div>
+            </div>
+            <div style="text-align:center;">
+                <button class="btn" onclick="generateMasterReport()">Generate Report</button>
+            </div>
+            <div id="mr-output" style="margin-top:20px;"></div>
+        </div>
+
+    </div>
+
+    <script>
+        /* --- GLOBAL APP CONFIGURATION & STATE --- */
+        let players = [], 
+            courses = [], 
+            rounds = [], 
+            pairsT = null, 
+            singlesT = null, 
+            pastComps = [], 
+            club = { name: "Golf Pro Manager", logo: "" };
+        let tempTeams = []; 
+        let selectedCourseData = null;
+
+        /* --- UTILITY & FORMATTING OPERATIONS --- */
+        function getScoreColor(pts) { 
+            if (pts >= 3) return '#27ae60'; 
+            if (pts === 2) return '#2980b9'; 
+            return '#333'; 
+        }
+
+        function colorLive(input) { 
+            const val = parseInt(input.value); 
+            if (val >= 7) { 
+                input.style.color = '#e74c3c'; 
+            } else if (val <= 3 && val > 0) { 
+                input.style.color = '#27ae60'; 
+            } else { 
+                input.style.color = '#333'; 
+            } 
+        }
+
+        function formatDateDisplay(dateStr) { 
+            if(!dateStr || !dateStr.includes('-')) return dateStr;
+            const [y, m, d] = dateStr.split('-'); 
+            return `${d}/${m}/${y}`; 
+        }
+
+        function parseDateInput(displayStr) { 
+            const parts = displayStr.split('/'); 
+            if(parts.length !== 3) return new Date().toISOString().split('T')[0]; 
+            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+
+        function getTieBreaker(pointsArray) { 
+            if (!pointsArray || pointsArray.length < 18) return 0;
+            const back9 = pointsArray.slice(9, 18).reduce((a, b) => a + b, 0);
+            const last6 = pointsArray.slice(12, 18).reduce((a, b) => a + b, 0);
+            const last3 = pointsArray.slice(15, 18).reduce((a, b) => a + b, 0); 
+            const last1 = pointsArray[17];
+            return (back9 * 0.01) + (last6 * 0.0001) + (last3 * 0.000001) + (last1 * 0.00000001);
+        }
+
+        /* --- DATABASE CORE STORAGE MANAGEMENT --- */
+        function loadData() { 
+            players = JSON.parse(localStorage.getItem('g_players')) || []; 
+            courses = JSON.parse(localStorage.getItem('g_courses')) || [];
+            rounds = JSON.parse(localStorage.getItem('g_rounds')) || []; 
+            pastComps = JSON.parse(localStorage.getItem('g_pastComps')) || []; 
+            club = JSON.parse(localStorage.getItem('g_club')) || { name: "Golf Pro Manager", logo: "" }; 
+            competitionTeams = JSON.parse(localStorage.getItem('g_compTeams')) || [];
+            pairsT = JSON.parse(localStorage.getItem('g_pairsT')) || []; 
+            singlesT = JSON.parse(localStorage.getItem('g_singlesT')) || [];
+
+            try { 
+                if (typeof renderActiveTeams === "function") renderActiveTeams(); 
+            } catch(e) { 
+                console.log("Team draw failed"); 
+            }
+
+            try { 
+                if (typeof renderMatchplay === "function") { 
+                    renderMatchplay('pairs'); 
+                    renderMatchplay('singles'); 
+                } 
+            } catch(e) { 
+                console.log("Matchplay draw failed"); 
+            }
+
+            try { 
+                const saved = localStorage.getItem('g_tempTeams'); 
+                if (saved) { 
+                    tempTeams = JSON.parse(saved);
+                    if (typeof renderSavedDoubles === "function") renderSavedDoubles(); 
+                } else { 
+                    tempTeams = []; 
+                } 
+            } catch(e) { 
+                console.log("Doubles draw failed"); 
+            }
+
+            if (pairsT.length === 0 && typeof renderMatchplay === "function") { 
+                renderMatchplay('pairs');
+            } 
+            if (singlesT.length === 0 && typeof renderMatchplay === "function") { 
+                renderMatchplay('singles'); 
+            } 
+        }
+
+        function saveData() { 
+            localStorage.setItem('g_players', JSON.stringify(players)); 
+            localStorage.setItem('g_courses', JSON.stringify(courses)); 
+            localStorage.setItem('g_rounds', JSON.stringify(rounds)); 
+            localStorage.setItem('g_pairsT', JSON.stringify(pairsT)); 
+            localStorage.setItem('g_singlesT', JSON.stringify(singlesT)); 
+            localStorage.setItem('g_pastComps', JSON.stringify(pastComps)); 
+            localStorage.setItem('g_club', JSON.stringify(club));
+            localStorage.setItem('g_compTeams', JSON.stringify(competitionTeams)); 
+        }
+
+        function backupData() { 
+            const data = { g_players: players, g_courses: courses, g_rounds: rounds, g_pairsT: pairsT, g_singlesT: singlesT, g_pastComps: pastComps, g_club: club };
+            const blob = new Blob([JSON.stringify(data)], {type: "application/json"}); 
+            const url = URL.createObjectURL(blob); 
+            const a = document.createElement('a'); 
+            a.href = url;
+            a.download = `golf_manager_backup_${new Date().toISOString().split('T')[0]}.json`; 
+            a.click(); 
+        }
+
+        function restoreData() { 
+            const file = document.getElementById('restoreFile').files[0];
+            if(!file) return alert("Select a file first."); 
+            const reader = new FileReader();
+            reader.onload = function(e) { 
+                try { 
+                    const data = JSON.parse(e.target.result);
+                    if(confirm("This will overwrite existing data. Proceed?")) { 
+                        localStorage.setItem('g_players', JSON.stringify(data.g_players || [])); 
+                        localStorage.setItem('g_courses', JSON.stringify(data.g_courses || [])); 
+                        localStorage.setItem('g_rounds', JSON.stringify(data.g_rounds || []));
+                        localStorage.setItem('g_pairsT', JSON.stringify(data.g_pairsT || null)); 
+                        localStorage.setItem('g_singlesT', JSON.stringify(data.g_singlesT || null)); 
+                        localStorage.setItem('g_pastComps', JSON.stringify(data.g_pastComps || [])); 
+                        loadData();
+                        alert("Data restored successfully!");
+                    } 
+                } catch(err) { 
+                    alert("Invalid backup file layout."); 
+                } 
+            };
+            reader.readAsText(file);
+        }
+
+        /* --- EXTERNAL GOLF COURSE REST API --- */
+        function saveGolfApiKey() { 
+            const key = document.getElementById('golfApiKey').value;
+            localStorage.setItem('golf_api_key', key); 
+            alert('API Key Saved!'); 
+        }
+
+        async function searchCourse() {  
+            const apiKey = localStorage.getItem('golf_api_key');
+            const search = document.getElementById('courseSearch').value;  
+            if (!search) { alert('Enter a course name'); return; }  
+            try {  
+                const response = await fetch(`https://api.golfcourseapi.com/v1/search?search_query=${encodeURIComponent(search)}&limit=10`, { headers: { "Authorization": `Key ${apiKey}` } });
+                const data = await response.json();  
+                console.log(data); 
+                alert(JSON.stringify(data));  
+                let html = '';
+                if (data.courses.length === 0) {  
+                    html = 'No courses found';
+                } else {  
+                    data.courses.forEach(course => {  
+                        html += ` <button class="btn-outline" style="width:100%; margin:5px 0;" onclick="selectCourse(${course.id})"> ${course.club_name} (${course.location.country}) </button> `; 
+                    });
+                }  
+                document.getElementById('courseResults').innerHTML = html;  
+            } catch (err) {  
+                console.error(err);  
+                alert('Search failed');
+            } 
+        }
+
+        async function selectCourse(courseId) {  
+            const apiKey = localStorage.getItem('golf_api_key');
+            try {  
+                const response = await fetch(`https://api.golfcourseapi.com/v1/courses/${courseId}`, { headers: { "Authorization": `Key ${apiKey}` } });
+                const data = await response.json();  
+                selectedCourseData = data.course;  
+                const teeSelector = document.getElementById('teeSelector');  
+                teeSelector.innerHTML = '<option value="">Select Tee Box</option>';
+                let tees = [];  
+                if (data.course.tees && data.course.tees.male) { tees = tees.concat(data.course.tees.male); }  
+                if (data.course.tees && data.course.tees.female) { tees = tees.concat(data.course.tees.female); }  
+                tees.forEach((tee, index) => {  
+                    const option = document.createElement('option');  
+                    option.value = index;  
+                    option.textContent = `${tee.tee_name} - ${tee.total_yards || 0} yds (Slope ${tee.slope_rating || 'N/A'})`;  
+                    teeSelector.appendChild(option); 
+                });
+                teeSelector.style.display = 'block';  
+                document.getElementById('loadTeeBtn').style.display = 'block';  
+            } catch (err) {  
+                console.error(err);
+                alert('Failed to load tee boxes'); 
+            } 
+        }
+
+        function loadSelectedTee() {  
+            const teeIndex = document.getElementById('teeSelector').value;
+            if (teeIndex === '') { alert('Please select a tee box'); return; }  
+            let tees = [];
+            if (selectedCourseData.tees && selectedCourseData.tees.male) { tees = tees.concat(selectedCourseData.tees.male); }  
+            if (selectedCourseData.tees && selectedCourseData.tees.female) { tees = tees.concat(selectedCourseData.tees.female); }  
+            const selectedTee = tees[teeIndex];
+            document.getElementById('cName').value = selectedCourseData.club_name + ' - ' + selectedTee.tee_name;
+            document.querySelectorAll('.setup-pars-val').forEach((input, i) => {  
+                input.value = selectedTee.holes?.[i]?.par || ''; 
+            });
+            document.querySelectorAll('.setup-si-val').forEach((input, i) => {  
+                input.value = selectedTee.holes?.[i]?.hcp || ''; 
+            });
+            window.tempYards = selectedTee.holes?.map(h => h.yardage || 0) || [];  
+            console.log(selectedTee); 
+            alert(JSON.stringify(selectedTee.holes[0]));
+        }
+
+        /* --- TOURNAMENT MASTER REPORTS --- */
+        function openMasterReport() { 
+            document.getElementById('dash-main-view').classList.add('hidden'); 
+            document.getElementById('dash-detail').classList.add('hidden'); 
+            document.getElementById('master-report').classList.remove('hidden');  
+            document.getElementById('mr-club-name').textContent = club.name || "Golf Pro Manager";  
+            const logo = document.getElementById('mr-logo'); 
+            if (club.logo) { 
+                logo.src = club.logo; 
+                logo.style.display = "block"; 
+            } else { 
+                logo.style.display = "none"; 
+            } 
+        }
+
+        function closeMasterReport() { 
+            document.getElementById('master-report').classList.add('hidden'); 
+            document.getElementById('dash-main-view').classList.remove('hidden');
+        }
+
+        function generateMasterReport() { 
+            const start = document.getElementById('mrStart').value; 
+            const end = document.getElementById('mrEnd').value;
+            if (!start || !end) { alert("Please select both start and end dates."); return; }  
+            const s = new Date(start);
+            const e = new Date(end);  
+            const filtered = pastComps.filter(c => { 
+                const d = new Date(parseDateInput(c.date)); 
+                return d >= s && d <= e; 
+            });
+            if (filtered.length === 0) { 
+                document.getElementById('mr-output').innerHTML = "<p>No events found in this date range.</p>"; 
+                return;
+            }  
+            document.getElementById('mr-output').innerHTML = ` 
+                <table class="report-table"> 
+                <thead> 
+                    <tr> 
+                        <th>Date</th> <th>Event</th> <th>Winner</th> <th>Points</th> <th>Longest Drive</th> <th>Nearest Pin</th> <th>Notes</th> 
+                    </tr> 
+                </thead> 
+                <tbody> 
+                ${filtered.map(c => ` 
+                    <tr> 
+                        <td>${c.date}</td> <td>${c.type}</td> <td>${c.winner || '-'}</td> <td>${c.points || '-'}</td> 
+                        <td>${c.longDrive === "Yes" ? "🏆" : "-"}</td> <td>${c.nearPin === "Yes" ? "🎯" : "-"}</td> <td>${c.detail || ''}</td> 
+                    </tr> `).join('')} 
+                </tbody> 
+                </table> `;
+        }
+    </script>
+</body>
+</html>
