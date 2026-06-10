@@ -289,11 +289,7 @@ color: white; font-size: 10px; font-weight: bold; cursor: pointer; text-transfor
 </button>
                 <hr>
             </div>
-<div style="text-align:center; margin-bottom:25px;">
-    <img id="mr-logo" src="" style="max-width:120px; display:none; margin-bottom:10px;">
-    <h1 id="mr-club-name" style="margin:0; font-size:26px;"></h1>
-    <h2 style="margin:5px 0 0 0; font-weight:normal; color:#444;">Master Event Report</h2>
-</div>
+
 
 <div style="display:flex; gap:20px; justify-content:center; margin-bottom:20px;">
     <div>
@@ -630,6 +626,28 @@ function getScoreColor(pts) {
     if (pts >= 3) return '#27ae60'; // Green (Great)
     if (pts === 2) return '#2980b9'; // Blue (Good)
     return '#333';                   // Black (Standard)
+}
+function openDateSummary(dateClicked) {
+    const events = pastComps.filter(e => e.date === dateClicked);
+
+    let html = `<h2>Events on ${dateClicked}</h2>`;
+
+    events.forEach(e => {
+        html += `
+            <div class="card" style="margin-bottom:10px;">
+                <strong>${e.type}</strong><br>
+                Winner: ${e.winner || '-'}<br>
+                Points: ${e.points || '-'}<br>
+                Longest Drive: ${e.longDrive || '-'}<br>
+                Nearest Pin: ${e.nearPin || '-'}<br>
+                Notes: ${e.detail || ''}
+            </div>
+        `;
+    });
+
+    document.getElementById("dash-main-view").classList.add("hidden");
+    document.getElementById("dash-detail").classList.remove("hidden");
+    document.getElementById("dash-detail").innerHTML += html;
 }
 function openMasterReport() {
     document.getElementById('dash-main-view').classList.add('hidden');
@@ -1895,7 +1913,45 @@ function renderSavedDoubles() {
     document.getElementById('db-step2').classList.remove('hidden');
 }
 </script>
+function openDateSummary(dateClicked) {
+    const events = pastComps.filter(e => e.date === dateClicked);
 
+    let html = `
+        <h2>Events on ${dateClicked}</h2>
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>Event</th>
+                    <th>Winner</th>
+                    <th>Points</th>
+                    <th>Longest Drive</th>
+                    <th>Nearest Pin</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    events.forEach(e => {
+        html += `
+            <tr>
+                <td>${e.type}</td>
+                <td>${e.winner || '-'}</td>
+                <td>${e.points || '-'}</td>
+                <td>${e.longDrive === "Yes" ? "🏆" : "-"}</td>
+                <td>${e.nearPin === "Yes" ? "🎯" : "-"}</td>
+                <td>${e.detail || ''}</td>
+            </tr>
+        `;
+    });
+
+    html += "</tbody></table>";
+
+    document.getElementById("dash-detail").classList.remove("hidden");
+    document.getElementById("dash-main-view").classList.add("hidden");
+    document.getElementById("detail-title").textContent = "Events on " + dateClicked;
+    document.getElementById("detail-results").innerHTML = html;
+}
 <div id="guideBox" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:25px; border-radius:15px; z-index:9999; width:90%; max-height:85vh; overflow-y:auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-family: sans-serif; border: 1px solid #ccc; color: #333;">
     <button onclick="hideGuide()" style="float:right; background:#e74c3c; color:white; border:none; border-radius:20px; width:30px; height:30px; cursor:pointer; font-weight:bold;">X</button>
     <h2 style="color:#2c3e50; margin-top:0;">⛳ User Guide</h2>
